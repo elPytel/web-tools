@@ -1,5 +1,7 @@
 # web-tools
 
+![index](./src/assets/WebTools.png)
+
 - [web-tools](#web-tools)
 - [Průvodce pro vývojáře](#průvodce-pro-vývojáře)
   - [Instalace Node.js](#instalace-nodejs)
