@@ -1,76 +1,44 @@
 <!doctype html>
 <html lang="cs">
-
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Výpočet rozdílu časů</title>
-    <style>
-        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; max-width: 720px; margin: 2rem auto; padding: 1rem; }
-        label { display: block; margin: 0.5rem 0; }
-        .controls { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
-        button { padding: 0.4rem 0.6rem; }
-        #result { font-weight: 600; margin-top: 1rem; }
-        .small { color: #555; font-size: 0.9rem; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Web Tools — domov</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; max-width:900px; margin:3rem auto; padding:1rem; }
+    h1 { margin-bottom: 0.2rem }
+    p.lead { color:#555 }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:1rem; margin-top:1.25rem }
+    .card { border:1px solid #e1e1e1; border-radius:8px; padding:1rem; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.03) }
+    .card h2 { margin:0 0 .25rem 0 }
+    .card p { margin:0 0 .75rem 0; color:#444 }
+    .card a { display:inline-block; padding:.4rem .6rem; background:#0366d6; color:#fff; text-decoration:none; border-radius:6px }
+    footer { margin-top:2rem; color:#666; font-size:.9rem }
+  </style>
 </head>
-
 <body>
-    <h1>Výpočet délky práce</h1>
+  <h1>Web Tools</h1>
+  <p class="lead">Malé nástroje spustitelné v prohlížeči. Vyberte si jednu z aplikací níže.</p>
 
-    <form id="timeForm">
-        <label>Začátek: <input type="time" id="start" required></label>
-        <label>Konec: <input type="time" id="end" required></label>
-        <div class="controls">
-            <button type="submit">Spočítej</button>
-            <button type="button" id="clear">Vyčistit</button>
-            <button type="button" id="copy" title="Kopírovat výsledek do schránky">Kopírovat</button>
-        </div>
-    </form>
+  <div class="grid">
+    <div class="card">
+      <h2>Výpočet délky práce</h2>
+      <p>Spočítá rozdíl mezi počátečním a koncovým časem (v minutách a ve formátu h:min). Přechod přes půlnoc je podporován.</p>
+      <a href="./worked_hours.html">Otevřít</a>
+    </div>
 
-    <p id="result" aria-live="polite"></p>
+    <div class="card">
+      <h2>Caesarova šifra</h2>
+      <p>Jednoduchá stránka pro šifrování/dešifrování pomocí Caesarovy šifry.</p>
+      <a href="./Caesar_cipher.html">Otevřít</a>
+    </div>
+  </div>
 
-    <script type="module">
-        import { computeDiff } from './src/timecalc.js';
-
-        // Použijeme event listenery místo inline atributu
-        document.getElementById('timeForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const start = document.getElementById('start').value;
-            const end = document.getElementById('end').value;
-
-            if (!start || !end) {
-                document.getElementById('result').textContent = 'Zadejte oba časy.';
-                return;
-            }
-
-            try {
-                const { minutes, pretty } = computeDiff(start, end);
-                document.getElementById('result').textContent = `Rozdíl: ${minutes} minut (${pretty})`;
-            } catch (err) {
-                document.getElementById('result').textContent = 'Chybný vstup.';
-            }
-        });
-
-        document.getElementById('clear').addEventListener('click', () => {
-            document.getElementById('start').value = '';
-            document.getElementById('end').value = '';
-            document.getElementById('result').textContent = '';
-        });
-
-        document.getElementById('copy').addEventListener('click', async () => {
-            const txt = document.getElementById('result').textContent;
-            if (!txt) return;
-            try {
-                await navigator.clipboard.writeText(txt);
-                // jednoduchá zpětná vazba
-                alert('Výsledek zkopírován do schránky');
-            } catch (err) {
-                alert('Kopírování selhalo: ' + (err && err.message ? err.message : 'neznámá chyba'));
-            }
-        });
+    <footer>
+        &copy; <span id="year"></span> Web Tools
+    </footer>
+    <script>
+      document.getElementById('year').textContent = new Date().getFullYear();
     </script>
-
 </body>
-
 </html>

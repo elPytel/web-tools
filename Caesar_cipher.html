@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <title>Caesarova šifra – demo</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      text-align: center;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    input[type="number"] {
+      width: 80px;
+      font-size: 16px;
+    }
+    button {
+      padding: 8px 15px;
+      margin: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 18px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔐 Caesarova šifra</h1>
+
+  <p>Zadej text a klíč posunu (1–25):</p>
+  <textarea id="text" placeholder="Zadej text..."></textarea><br>
+  <label>Klíč: <input type="number" id="shift" value="3" min="1" max="25"></label><br>
+
+  <button onclick="encrypt()">Zašifruj</button>
+  <button onclick="decrypt()">Dešifruj</button>
+
+  <div class="result" id="result"></div>
+
+  <script type="module">
+    import { encrypt as enc, decrypt as dec } from './src/caesar.js';
+
+    function showEncrypted() {
+      const text = document.getElementById('text').value;
+      const shift = parseInt(document.getElementById('shift').value) || 0;
+      const encrypted = enc(text, shift);
+      document.getElementById('result').textContent = '🔒 Zašifrovaný text:\n' + encrypted;
+    }
+
+    function showDecrypted() {
+      const text = document.getElementById('text').value;
+      const shift = parseInt(document.getElementById('shift').value) || 0;
+      const decrypted = dec(text, shift);
+      document.getElementById('result').textContent = '🔓 Dešifrovaný text:\n' + decrypted;
+    }
+
+    // wire up buttons
+    document.querySelector('button[onclick="encrypt()"]')?.addEventListener('click', showEncrypted);
+    document.querySelector('button[onclick="decrypt()"]')?.addEventListener('click', showDecrypted);
+  </script>
+</body>
+</html>
