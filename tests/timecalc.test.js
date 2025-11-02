@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeDiffMinutes, formatPretty, computeDiff } from '../src/timecalc.js';
+import { computeDiffMinutes, formatPretty, computeDiff } from '../src/js/timecalc.js';
 
 describe('timecalc', () => {
   it('calculates simple interval correctly', () => {
