@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <title>Checksum / Hash – MD5, SHA-1, SHA-256</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- společný styl celé sbírky -->
+  <link rel="stylesheet" href="./style.css">
+  <style>
+    /* drobná lokální úprava pro monospaced výstupy a zvýraznění */
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; word-break: break-all; }
+    .hashline { padding: 6px 8px; border-radius: 8px; background: #f3f4f6; }
+    .diff span.diff { background: #fde68a; border-radius: 4px; padding: 0 2px; }
+    .grid2 { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 12px; }
+    .kv { display:grid; grid-template-columns: 120px 1fr; gap: 6px; align-items:center }
+    .muted { color:#666; font-size:12px }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+    .ok { color:#059669; font-weight:600 }
+  </style>
+  <!-- MD5 (blueimp) z CDN pro prohlížeč. SRI se odstranil kvůli mismatchu — loader zkusí CDN a pak lokální fallback -->
+  <script>
+    (function(){
+      const cdn = 'https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js';
+      const local = './vendor/md5.min.js';
+      function tryLoad(src, onload, onerror){
+        const s = document.createElement('script');
+        s.src = src; s.async = true;
+        s.onload = onload; s.onerror = onerror;
+        document.head.appendChild(s);
+      }
+
+      // Try CDN first (no integrity attribute to avoid SRI blocking if hash mismatch)
+      tryLoad(cdn, function(){
+        // mark loaded
+        if (window.md5 && typeof window.md5 === 'function') {
+          window.dispatchEvent(new Event('md5:loaded'));
+        }
+      }, function(){
+        // CDN failed — try local fallback
+        tryLoad(local, function(){ if (window.md5 && typeof window.md5 === 'function') window.dispatchEvent(new Event('md5:loaded')); }, function(){ console.warn('MD5 script failed to load from CDN and local fallback.'); });
+      });
+    })();
+  </script>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <h1>🧮 Checksum / Hash ukázka</h1>
+      <div class="muted">MD5, SHA-1, SHA-256 • ukázka lavinového efektu (bitové rozdíly po změně znaku)</div>
+    </div>
+
+    <div class="row">
+      <!-- Vstup A -->
+      <div class="card">
+        <h3>Vstup A</h3>
+        <div class="grid2">
+          <div class="kv"><div>Zadejte text:</div></div>
+        </div>
+        <textarea id="textA" rows="6" placeholder="Sem napiš text…">Ahoj světe</textarea>
+        <div class="muted">Hashy se počítají automaticky během psaní.</div>
+      </div>
+
+      <!-- Vstup B -->
+      <div class="card">
+        <h3>Vstup B</h3>
+        <div class="grid2">
+          <div class="kv"><div>Zadejte text:</div></div>
+        </div>
+        <textarea id="textB" rows="6" placeholder="Sem napiš druhý text…">Ahoj světe!</textarea>
+        <div class="muted">Zkus změnit jediný znak a sleduj rozdíly hashů.</div>
+      </div>
+    </div>
+
+    <!-- Výsledky -->
+    <div class="card">
+      <h3>Výsledky</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Algoritmus</th>
+            <th>Hash A</th>
+            <th>Hash B</th>
+            <th>Rozdíl</th>
+          </tr>
+        </thead>
+        <tbody id="results">
+          <!-- dynamicky doplněno -->
+        </tbody>
+      </table>
+      <div id="summary" class="muted" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const enc = new TextEncoder();
+
+    async function shaHex(alg, text) {
+      const buf = await crypto.subtle.digest(alg, enc.encode(text));
+      const bytes = new Uint8Array(buf);
+      return [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    function md5Hex(text) {
+      return window.md5 ? window.md5(text) : null; // z CDN (may be unavailable if script blocked/offline)
+    }
+
+  // Feature detection
+  let md5Available = typeof window.md5 === 'function';
+  const subtleAvailable = !!(window.crypto && window.crypto.subtle && typeof window.crypto.subtle.digest === 'function');
+
+    function xorBitCount(hex1, hex2) {
+      // porovnáme po bytech – hex -> bytes -> XOR -> spočítat jedničky
+      const toBytes = (h) => {
+        const out = new Uint8Array(h.length/2);
+        for (let i=0; i<h.length; i+=2) out[i/2] = parseInt(h.slice(i,i+2),16);
+        return out;
+      };
+      const a = toBytes(hex1), b = toBytes(hex2);
+      const n = Math.min(a.length, b.length);
+      let bits = 0;
+      for (let i=0; i<n; i++) {
+        let x = a[i]^b[i];
+        // Brian Kernighan trick
+        while (x) { x &= x-1; bits++; }
+      }
+      const totalBits = n*8;
+      return { bits, totalBits, pct: totalBits ? (100*bits/totalBits) : 0 };
+    }
+
+    function highlightHexDiff(a, b) {
+      // zvýrazní odlišné hex nibbly (po znacích)
+      const L = Math.min(a.length, b.length);
+      let sa = '', sb = '';
+      for (let i=0; i<L; i++) {
+        const diff = a[i] !== b[i];
+        const wrap = (ch) => diff ? `<span class="diff">${ch}</span>` : ch;
+        sa += wrap(a[i]);
+        sb += wrap(b[i]);
+      }
+      // pokud jsou různé délky (neměly by být), připoj zbytek
+      if (a.length > L) sa += `<span class="diff">${a.slice(L)}</span>`;
+      if (b.length > L) sb += `<span class="diff">${b.slice(L)}</span>`;
+      return { sa, sb };
+    }
+
+    async function computeAndRender() {
+      const a = $('textA').value || '';
+      const b = $('textB').value || '';
+
+      // Spočítáme hashe pro A i B, ale buďme odolní vůči chybějícím API nebo blokovaným CDN
+      let md5A = null, md5B = null;
+      let sha1A = null, sha1B = null, sha256A = null, sha256B = null;
+
+      if (md5Available) {
+        try { md5A = md5Hex(a); md5B = md5Hex(b); } catch (e) { md5A = md5B = null; console.warn('MD5 failed', e); }
+      }
+
+      if (subtleAvailable) {
+        try {
+          [sha1A, sha1B] = await Promise.all([shaHex('SHA-1', a), shaHex('SHA-1', b)]);
+          [sha256A, sha256B] = await Promise.all([shaHex('SHA-256', a), shaHex('SHA-256', b)]);
+        } catch (e) {
+          console.warn('SubtleCrypto digest failed', e);
+          sha1A = sha1B = sha256A = sha256B = null;
+        }
+      }
+
+      const rows = [
+        { name: 'MD5',     A: md5A,   B: md5B   },
+        { name: 'SHA-1',   A: sha1A,  B: sha1B  },
+        { name: 'SHA-256', A: sha256A, B: sha256B }
+      ];
+
+      const tbody = $('results');
+      tbody.innerHTML = '';
+
+      let sumBits = 0, sumTotal = 0;
+
+      for (const r of rows) {
+        let diff = { bits: 0, totalBits: 0, pct: 0 };
+        let sa = r.A || '(unavailable)';
+        let sb = r.B || '(unavailable)';
+
+        // Only compute bitwise XOR when we have two hex strings of the same even length
+        if (typeof r.A === 'string' && typeof r.B === 'string' && /^[0-9a-fA-F]+$/.test(r.A) && r.A.length === r.B.length) {
+          diff = xorBitCount(r.A, r.B);
+          const hl = highlightHexDiff(r.A, r.B);
+          sa = hl.sa; sb = hl.sb;
+          sumBits += diff.bits; sumTotal += diff.totalBits;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b>${r.name}</b></td>
+          <td class="mono"><div class="hashline diff">${sa}</div></td>
+          <td class="mono"><div class="hashline diff">${sb}</div></td>
+          <td>
+            <div><b>${diff.bits}</b> / ${diff.totalBits} bitů</div>
+            <div class="muted">${diff.pct.toFixed(2)} %</div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      const overall = sumTotal ? (100*sumBits/sumTotal) : 0;
+      $('summary').innerHTML = `Průměrný rozdíl přes všechny algoritmy: <b>${overall.toFixed(2)} %</b> bitů odlišných (lavinový efekt).`;
+    }
+
+  // Dráty UI
+  const wire = (id, evt='input') => $(id).addEventListener(evt, computeAndRender);
+  ['textA','textB'].forEach(id => wire(id));
+
+    // Inicializace
+      // If MD5 loads later, update flag and re-render
+      window.addEventListener('md5:loaded', () => { md5Available = true; try { computeAndRender(); } catch (e) { console.error('Recompute after md5 load failed', e); } });
+      computeAndRender();
+  </script>
+</body>
+</html>
