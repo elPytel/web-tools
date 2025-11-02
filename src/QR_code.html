@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <title>Generátor QR kódů</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="./style.css">
+  <!-- QRCode.js (davidshimjs) - load from CDN with local fallback -->
+  <script>
+    (function(){
+  const cdn = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+      const container = document.createElement('div'); container.id = 'qrcode-loader-status'; container.style.display='none'; document.head.appendChild(container);
+
+      function showError(msg){
+        const preview = document.getElementById('qrc');
+        if (!preview) return;
+        preview.innerHTML = '';
+        const p = document.createElement('div');
+        p.style.color = '#900'; p.style.fontWeight='600';
+        p.textContent = msg + ' '; 
+        const a = document.createElement('a'); a.href = cdn; a.target = '_blank'; a.rel='noopener'; a.textContent = 'Stáhnout zde';
+        p.appendChild(a);
+        preview.appendChild(p);
+      }
+
+      function tryLoad(src, onload, onerror){
+        const s = document.createElement('script'); s.src = src; s.async = true;
+        s.onload = onload; s.onerror = onerror;
+        document.head.appendChild(s);
+      }
+
+      // Try CDN only. Dispatch an event on successful load so the page can react.
+      tryLoad(cdn, function(){ document.dispatchEvent(new Event('qrcodejs:loaded')); }, function(){
+        showError('Chyba: knihovna QRCode.js nebyla načtena. Zkontroluj připojení k internetu nebo integritu skriptu.');
+      });
+    })();
+  </script>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <h1>🔳 Generátor QR kódů</h1>
+      <div class="hint">Vyber režim, vyplň údaje a QR se automaticky vygeneruje. Tlačítkem uložíš jako PNG.</div>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <div class="controls">
+          <div class="grid2">
+            <div>
+              <label for="mode">Režim</label>
+              <select id="mode">
+                <option value="text">Text / URL</option>
+                <option value="wifi">Wi-Fi</option>
+                <option value="vcard">vCard</option>
+              </select>
+            </div>
+            <div>
+              <label for="level">Korekce chyb</label>
+              <select id="level">
+                <option value="L">L (7%)</option>
+                <option value="M" selected>M (15%)</option>
+                <option value="Q">Q (25%)</option>
+                <option value="H">H (30%)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Sekce: Text/URL -->
+          <div id="section-text" class="controls">
+            <label for="text">Text / URL</label>
+            <textarea id="text" placeholder="Např.: https://example.com nebo libovolný text…">Ahoj světe!</textarea>
+          </div>
+
+          <!-- Sekce: Wi-Fi -->
+          <div id="section-wifi" class="controls" style="display:none">
+            <div class="grid2">
+              <div>
+                <label for="ssid">Název sítě (SSID)</label>
+                <input id="ssid" type="text" placeholder="MojeWiFi">
+              </div>
+              <div>
+                <label for="auth">Zabezpečení</label>
+                <select id="auth">
+                  <option value="WPA" selected>WPA/WPA2/WPA3</option>
+                  <option value="WEP">WEP</option>
+                  <option value="nopass">Otevřená (bez hesla)</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid2">
+              <div>
+                <label for="pass">Heslo</label>
+                <input id="pass" type="text" placeholder="••••••••">
+              </div>
+              <div>
+                <label for="hidden">Skrytá síť</label>
+                <select id="hidden">
+                  <option value="false" selected>Ne</option>
+                  <option value="true">Ano</option>
+                </select>
+              </div>
+            </div>
+            <div class="hint">Formát: <code>WIFI:T:&lt;WPA|WEP|nopass&gt;;S:&lt;SSID&gt;;P:&lt;password&gt;;H:&lt;true|false&gt;;;</code></div>
+          </div>
+
+          <!-- Sekce: vCard -->
+          <div id="section-vcard" class="controls" style="display:none">
+            <div class="grid2">
+              <div>
+                <label for="fn">Jméno (FN)</label>
+                <input id="fn" type="text" placeholder="Jan Novák">
+              </div>
+              <div>
+                <label for="org">Organizace</label>
+                <input id="org" type="text" placeholder="Firma s.r.o.">
+              </div>
+            </div>
+            <div class="grid2">
+              <div>
+                <label for="tel">Telefon</label>
+                <input id="tel" type="text" placeholder="+420123456789">
+              </div>
+              <div>
+                <label for="email">E-mail</label>
+                <input id="email" type="text" placeholder="jan.novak@example.com">
+              </div>
+            </div>
+            <label for="addr">Adresa</label>
+            <input id="addr" type="text" placeholder="Ulice 1, 110 00 Praha, CZ">
+            <label for="url">Web</label>
+            <input id="url" type="text" placeholder="https://example.com">
+            <div class="hint">Generuje vCard 3.0 (FN, ORG, TEL, EMAIL, ADR, URL).</div>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label for="size">Velikost (px)</label>
+              <input id="size" type="number" min="128" max="2048" step="16" value="320">
+            </div>
+            <div>
+              <label>Barvy</label>
+              <div class="grid2">
+                <div><input id="fg" type="color" value="#000000" title="Popředí"></div>
+                <div><input id="bg" type="color" value="#ffffff" title="Pozadí"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <button id="generate">Vygenerovat</button>
+            <button id="download" class="pill">Stáhnout PNG</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="center">Náhled</h3>
+        <div id="qrc" class="preview"></div>
+        <div class="center hint">Tip: vyšší korekce chyb (Q/H) zlepší čitelnost u malých kódů nebo s logem.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ======= Pomocné funkce pro režimy =======
+    function escapeWiFi(s) {
+      // dle specifikace je třeba escapovat \ ; , : " a , případně lomítka
+      return String(s).replace(/([\\;,":])/g, "\\$1");
+    }
+    function buildWifiString() {
+      const ssid = document.getElementById('ssid').value || '';
+      const auth = document.getElementById('auth').value;
+      const pass = document.getElementById('pass').value || '';
+      const hidden = document.getElementById('hidden').value === 'true';
+
+      let str = `WIFI:T:${auth};S:${escapeWiFi(ssid)};`;
+      if (auth !== 'nopass') str += `P:${escapeWiFi(pass)};`;
+      if (hidden) str += `H:true;`;
+      str += `;`;
+      return str;
+    }
+    function foldVCardLine(line) {
+      // soft wrap po 75 octetech – pro jednoduchost dělíme po 75 znacích
+      const max = 75;
+      if (line.length <= max) return line;
+      let out = '';
+      for (let i = 0; i < line.length; i += max) {
+        out += (i ? '\r\n ' : '') + line.slice(i, i + max);
+      }
+      return out;
+    }
+    function buildVCard() {
+      const fn = document.getElementById('fn').value || '';
+      const org = document.getElementById('org').value || '';
+      const tel = document.getElementById('tel').value || '';
+      const email = document.getElementById('email').value || '';
+      const addr = document.getElementById('addr').value || '';
+      const url  = document.getElementById('url').value || '';
+
+      const lines = [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        foldVCardLine(`FN:${fn}`),
+        org ? foldVCardLine(`ORG:${org}`) : null,
+        tel ? foldVCardLine(`TEL;TYPE=CELL,VOICE:${tel}`) : null,
+        email ? foldVCardLine(`EMAIL:${email}`) : null,
+        addr ? foldVCardLine(`ADR;TYPE=WORK:;;${addr};;;;`) : null,
+        url ? foldVCardLine(`URL:${url}`) : null,
+        'END:VCARD'
+      ].filter(Boolean);
+      return lines.join('\r\n');
+    }
+
+    function getPayload() {
+      const mode = document.getElementById('mode').value;
+      if (mode === 'wifi') return buildWifiString();
+      if (mode === 'vcard') return buildVCard();
+      return document.getElementById('text').value || '';
+    }
+
+    function qrcodeLevel(letter) {
+      return {
+        L: QRCode.CorrectLevel.L,
+        M: QRCode.CorrectLevel.M,
+        Q: QRCode.CorrectLevel.Q,
+        H: QRCode.CorrectLevel.H
+      }[letter] || QRCode.CorrectLevel.M;
+    }
+
+    // ======= Generování a stažení =======
+    let qr = null;
+    function renderQR() {
+      const container = document.getElementById('qrc');
+      container.innerHTML = '';
+      // safety: ensure library is available
+      if (typeof QRCode === 'undefined') {
+        container.textContent = 'Chyba: knihovna QRCode.js nebyla načtena. Zkontroluj připojení k internetu nebo integrity skriptu.';
+        container.style.color = '#900';
+        container.style.fontWeight = '600';
+        return;
+      }
+      const payload = getPayload();
+      if (!payload || !String(payload).trim()) {
+        container.textContent = 'Zadej text nebo vyplň pole pro vybraný režim.';
+        container.style.color = '#555';
+        return;
+      }
+      const size = Math.max(128, Math.min(2048, Number(document.getElementById('size').value) || 320));
+      const level = qrcodeLevel(document.getElementById('level').value);
+      const colorDark = document.getElementById('fg').value || '#000000';
+      const colorLight = document.getElementById('bg').value || '#ffffff';
+
+      try {
+        qr = new QRCode(container, {
+          text: payload,
+          width: size,
+          height: size,
+          colorDark,
+          colorLight,
+          correctLevel: level
+        });
+      } catch (err) {
+        console.error('QR render error', err);
+        container.textContent = 'Chyba při generování QR: ' + (err && err.message ? err.message : String(err));
+        container.style.color = '#900';
+      }
+    }
+
+    function downloadPNG() {
+      if (!qr) return;
+      // qrcodejs renderuje <canvas> nebo <img>; preferujeme canvas
+      const container = document.getElementById('qrc');
+      const canvas = container.querySelector('canvas');
+      const img = container.querySelector('img');
+
+      let dataURL = null;
+      if (canvas) {
+        dataURL = canvas.toDataURL('image/png');
+      } else if (img && img.src.startsWith('data:image/png')) {
+        dataURL = img.src;
+      } else {
+        // fallback: vygenerovat dočasně canvas překreslením <img>
+        if (img) {
+          const c = document.createElement('canvas');
+          c.width = img.naturalWidth || img.width;
+          c.height = img.naturalHeight || img.height;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          dataURL = c.toDataURL('image/png');
+        }
+      }
+      if (!dataURL) return;
+
+      const a = document.createElement('a');
+      a.href = dataURL;
+      a.download = 'qrcode.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    // ======= UI dráty =======
+    function updateSections() {
+      const mode = document.getElementById('mode').value;
+      document.getElementById('section-text').style.display  = (mode === 'text') ? '' : 'none';
+      document.getElementById('section-wifi').style.display  = (mode === 'wifi') ? '' : 'none';
+      document.getElementById('section-vcard').style.display = (mode === 'vcard') ? '' : 'none';
+    }
+
+    document.getElementById('mode').addEventListener('change', () => { updateSections(); renderQR(); });
+    ['text','ssid','auth','pass','hidden','fn','org','tel','email','addr','url',
+     'level','size','fg','bg'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', renderQR);
+      if (el) el.addEventListener('change', renderQR);
+    });
+    document.getElementById('generate').addEventListener('click', (e) => { e.preventDefault(); renderQR(); });
+    document.getElementById('download').addEventListener('click', (e) => { e.preventDefault(); downloadPNG(); });
+
+    // Inicializace
+    updateSections();
+    renderQR();
+
+    // If the QR library loads after the page initialized (slow CDN or local fallback),
+    // re-render so any earlier "library missing" message is cleared.
+    document.addEventListener('qrcodejs:loaded', () => {
+      const container = document.getElementById('qrc');
+      if (!container) return;
+      // clear any temporary error styling
+      container.style.color = '';
+      container.style.fontWeight = '';
+      // attempt to render again now that library is available
+      try { renderQR(); } catch (err) { console.error('Re-render after QR library load failed', err); }
+    });
+  </script>
+</body>
+</html>
