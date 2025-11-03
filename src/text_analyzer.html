@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <title>Textový analyzátor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="./style.css">
+  <style>
+    /* Lokální drobnosti pro MVP */
+    .mini { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:10px }
+    .stat { background:#fff; border:1px solid #eee; border-radius:10px; padding:10px }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align:left }
+    .bar { height: 8px; border-radius:4px; background: linear-gradient(90deg, #3b82f6 var(--p,0%), #e5e7eb var(--p,0%)); }
+    .muted { color:#666; font-size:12px }
+    .row { display:grid; grid-template-columns: 2fr 1fr; gap:16px }
+    @media (max-width: 900px){ .row{ grid-template-columns: 1fr } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <h1>📝 Textový analyzátor</h1>
+      <div class="muted">Počítá základní metriky, frekvence písmen a χ² proti CZ/EN referenci. Vše běží lokálně v prohlížeči.</div>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <h3>Vstup</h3>
+        <textarea id="text" rows="10" placeholder="Vlož nebo napiš text…">Ahoj světe! Toto je krátký ukázkový text. CH je v češtině digraf.</textarea>
+        <div class="mini" style="margin-top:10px">
+          <label class="stat"><input type="checkbox" id="lower" checked> převést na malá písmena</label>
+          <label class="stat"><input type="checkbox" id="stripDia" checked> odstranit diakritiku</label>
+          <label class="stat"><input type="checkbox" id="treatCH" checked> „CH“ jako jedno písmeno</label>
+          <label class="stat"><input type="checkbox" id="inclNums"> počítat slova vč. čísel</label>
+        </div>
+        <div class="mini" style="margin-top:10px">
+          <label class="stat">χ² reference:
+            <select id="refLang">
+              <option value="cz" selected>Čeština (A–Z + CH)</option>
+              <option value="en">Angličtina (A–Z)</option>
+            </select>
+          </label>
+          <button id="analyze" class="stat">Analyzovat</button>
+          <span class="stat">χ²: <b id="chiOut">–</b></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Přehled</h3>
+        <div class="mini">
+          <div class="stat">Znaky (vč. mezer): <b id="charsAll">0</b></div>
+          <div class="stat">Znaky (bez mezer): <b id="charsNo">0</b></div>
+          <div class="stat">Slova: <b id="words">0</b></div>
+          <div class="stat">Unikátní slova: <b id="uniq">0</b></div>
+          <div class="stat">TTR: <b id="ttr">0</b></div>
+          <div class="stat">Řádky: <b id="lines">0</b></div>
+          <div class="stat">Odstavce: <b id="pars">0</b></div>
+          <div class="stat">Prům. délka slova: <b id="avgLen">0</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Frekvence písmen</h3>
+      <div class="muted">Abeceda se řídí volbou „CH jako písmeno“. U reference EN se „CH“ pro χ² ignoruje.</div>
+      <table>
+        <thead><tr><th>Písmeno</th><th>Počet</th><th>%</th><th>Viz</th><th class="muted">Oček. %</th><th class="muted">Δ (obs−oč)</th></tr></thead>
+        <tbody id="freqBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card" id="topDevCard" style="display:none">
+      <h3>TOP odchylky (χ²)</h3>
+      <div class="muted">Písmena s největší odchylkou od zvolené reference.</div>
+      <table>
+        <thead><tr><th>Písmeno</th><th>Obs. %</th><th>Oček. %</th><th>|Δ|</th></tr></thead>
+        <tbody id="devBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    // --- Reference frekvence v % ---
+    // EN (A–Z), zdroj: běžně uváděná distribuce
+    const EN_FREQ = {A:8.167,B:1.492,C:2.782,D:4.253,E:12.702,F:2.228,G:2.015,H:6.094,I:6.966,J:0.153,K:0.772,L:4.025,M:2.406,N:6.749,O:7.507,P:1.929,Q:0.095,R:5.987,S:6.327,T:9.056,U:2.758,V:0.978,W:2.360,X:0.150,Y:1.974,Z:0.074};
+    // CZ (A–Z + CH) – zjednodušená aproximace bez diakritiky; „CH“ přidáno ~0.9 %
+    const CZ_FREQ = {A:8.6,B:1.7,C:3.0,CH:0.9,D:3.6,E:9.8,F:0.3,G:0.3,H:1.5,I:7.5,J:2.2,K:3.6,L:3.8,M:3.4,N:6.7,O:8.6,P:3.1,Q:0.0,R:4.8,S:4.9,T:5.7,U:3.6,V:4.5,W:0.0,X:0.0,Y:1.7,Z:2.1};
+
+    // --- Normalizace textu ---
+    function stripDiacritics(s) {
+      return s.normalize('NFD').replace(/\p{M}/gu,'').replace(/ů/g,'u').replace(/ẞ/g,'SS').replace(/ß/g,'ss');
+    }
+    function normalizeText(raw, {lower, stripDia}) {
+      let t = raw;
+      if (stripDia) t = stripDiacritics(t);
+      if (lower) t = t.toLowerCase();
+      return t;
+    }
+
+    // --- Tokenizace slov ---
+    function tokenizeWords(t, includeNumbers=false) {
+      const re = includeNumbers ? /[\p{L}\p{N}]+/gu : /[\p{L}]+/gu;
+      return t.match(re) || [];
+    }
+
+    // --- Příprava písmen pro frekvenci (A–Z, volitelně CH jako 1 znak) ---
+    function lettersStream(t, treatCH) {
+      const up = t.toUpperCase();
+      const out = [];
+      for (let i=0;i<up.length;i++){
+        const c = up[i];
+        const code = c.codePointAt(0);
+        if (treatCH && c==='C' && i+1<up.length && up[i+1]==='H'){ out.push('CH'); i++; continue; }
+        if (code>=65 && code<=90){ out.push(c); }
+      }
+      return out;
+    }
+    function alphabet(treatCH){
+      const base = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+      if (!treatCH) return base;
+      // vložíme CH za C
+      return ['A','B','C','CH','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+    }
+
+    // --- Frekvence písmen ---
+    function letterFrequencies(t, treatCH){
+      const alpha = alphabet(treatCH);
+      const counts = Object.fromEntries(alpha.map(a=>[a,0]));
+      const letters = lettersStream(t, treatCH);
+      let total = 0;
+      for (const L of letters){ if (counts[L]!==undefined){ counts[L]++; total++; } }
+      const freq = {};
+      for (const k of alpha){
+        const pct = total? (counts[k]/total*100) : 0;
+        freq[k] = {count: counts[k], pct};
+      }
+      return {freq, total, alpha};
+    }
+
+    // --- χ² výpočet proti referenci (ignoruje písmena, která reference nemá) ---
+    function chiSquare(freqMap, totalLetters, ref) {
+      let chi = 0;
+      for (const [k, v] of Object.entries(freqMap)) {
+        if (!(k in ref)) continue;
+        const expected = ref[k]/100 * totalLetters;
+        if (expected>0){
+          const diff = v.count - expected;
+          chi += (diff*diff)/expected;
+        }
+      }
+      return chi;
+    }
+
+    // --- Hlavní analýza ---
+    function analyze() {
+      const opts = {
+        lower: $('lower').checked,
+        stripDia: $('stripDia').checked,
+        treatCH: $('treatCH').checked,
+        includeNumbers: $('inclNums').checked
+      };
+      const refLang = $('refLang').value;
+
+      // normalizace pro slova / znaky
+      const raw = $('text').value ?? '';
+      const norm = normalizeText(raw, opts);
+
+      // metriky
+      const charsAll = norm.length;
+      const charsNo = norm.replace(/\s+/g,'').length;
+      const lines = norm ? norm.split(/\n/).length : 0;
+      const pars = norm ? norm.split(/\n\s*\n/).filter(x=>x.trim().length).length : 0;
+      const words = tokenizeWords(norm, opts.includeNumbers);
+      const wordCount = words.length;
+      const uniq = new Set(words.map(w=>w.toLowerCase())).size;
+      const ttr = wordCount ? (uniq/wordCount) : 0;
+      const avgLen = wordCount ? (words.join('').length/wordCount) : 0;
+
+      $('charsAll').textContent = charsAll;
+      $('charsNo').textContent  = charsNo;
+      $('lines').textContent    = lines;
+      $('pars').textContent     = pars;
+      $('words').textContent    = wordCount;
+      $('uniq').textContent     = uniq;
+      $('ttr').textContent      = ttr.toFixed(3);
+      $('avgLen').textContent   = avgLen.toFixed(2);
+
+      // frekvence písmen
+      const {freq, total, alpha} = letterFrequencies(norm, opts.treatCH);
+
+      // reference pro χ²
+      const ref = (refLang==='cz') ? CZ_FREQ : EN_FREQ;
+      const chi = chiSquare(freq, total, ref);
+      $('chiOut').textContent = total ? chi.toFixed(2) : '–';
+
+      // tabulka frekvencí + očekávané %
+      const tbody = $('freqBody'); tbody.innerHTML = '';
+      const rows = alpha.map(k => {
+        const f = freq[k] || {count:0,pct:0};
+        const exp = (ref[k] ?? 0);
+        const delta = f.pct - exp;
+        return {k, ...f, exp, deltaAbs: Math.abs(delta), delta};
+      });
+      // seřazení podle písmena (už je v abecedě), vykreslení
+      for (const r of rows){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b>${r.k}</b></td>
+          <td class="mono">${r.count}</td>
+          <td class="mono">${r.pct.toFixed(2)}</td>
+          <td><div class="bar" style="--p:${r.pct}%"></div></td>
+          <td class="mono muted">${r.exp ? r.exp.toFixed(2) : '—'}</td>
+          <td class="mono muted">${(r.exp ? r.delta.toFixed(2) : '—')}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      // TOP odchylky (jen ta písmena, která mají očekávání v referenci)
+      const dev = rows.filter(r => r.k in ref).sort((a,b)=>b.deltaAbs - a.deltaAbs).slice(0,8);
+      const devBody = $('devBody');
+      if (dev.length){
+        $('topDevCard').style.display = '';
+        devBody.innerHTML = dev.map(r => `
+          <tr>
+            <td><b>${r.k}</b></td>
+            <td class="mono">${r.pct.toFixed(2)}</td>
+            <td class="mono">${r.exp.toFixed(2)}</td>
+            <td class="mono">${r.deltaAbs.toFixed(2)}</td>
+          </tr>
+        `).join('');
+      } else {
+        $('topDevCard').style.display = 'none';
+      }
+    }
+
+    // Dráty UI
+    $('analyze').addEventListener('click', analyze);
+    // „živě“, ale s debounce, aby to bylo příjemné při psaní
+    let t=null;
+    $('text').addEventListener('input', ()=>{ clearTimeout(t); t=setTimeout(analyze, 250); });
+    ['lower','stripDia','treatCH','inclNums','refLang'].forEach(id=>{
+      $(id).addEventListener('change', analyze);
+    });
+
+    // Start
+    analyze();
+  </script>
+</body>
+</html>
