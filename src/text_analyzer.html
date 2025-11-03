@@ -2,11 +2,11 @@
 <html lang="cs">
 <head>
   <meta charset="utf-8">
-  <title>Textový analyzátor</title>
+  <title>Textový analyzátor – MVP + CSV & File</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="./style.css">
   <style>
-    /* Lokální drobnosti pro MVP */
+    /* Lokální drobnosti */
     .mini { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:10px }
     .stat { background:#fff; border:1px solid #eee; border-radius:10px; padding:10px }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace }
@@ -16,25 +16,59 @@
     .muted { color:#666; font-size:12px }
     .row { display:grid; grid-template-columns: 2fr 1fr; gap:16px }
     @media (max-width: 900px){ .row{ grid-template-columns: 1fr } }
+
+    /* Drop zóna pro soubory */
+    .dropzone {
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      background: #f8fafc;
+      transition: background .15s, border-color .15s;
+    }
+    .dropzone.dragover {
+      background: #eef2ff;
+      border-color: #93c5fd;
+    }
+
+    /* Panel exportů */
+    .exports { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:10px }
+    .btn { border:1px solid #dadada; background:#fff; padding:10px 14px; border-radius:10px; cursor:pointer; font-size:14px; box-shadow:0 2px 6px rgba(0,0,0,.05) }
+    .btn:hover { background:#f1f1f1 }
   </style>
 </head>
 <body>
   <div class="app">
     <div class="card">
       <h1>📝 Textový analyzátor</h1>
-      <div class="muted">Počítá základní metriky, frekvence písmen a χ² proti CZ/EN referenci. Vše běží lokálně v prohlížeči.</div>
+      <div class="muted">Počítá základní metriky, frekvence písmen a χ² proti CZ/EN referenci. Nově: nahrávání souborů a exporty do CSV. Vše běží lokálně v prohlížeči.</div>
     </div>
 
     <div class="row">
       <div class="card">
         <h3>Vstup</h3>
+
+        <div class="mini" style="margin-bottom:10px">
+          <div class="stat">
+            <label for="file">Nahrát soubor (.txt, .md, .csv)</label>
+            <input id="file" type="file" accept=".txt,.md,.csv, text/plain, text/markdown, text/csv">
+            <div class="muted">Načte se UTF-8 a vloží do pole níže.</div>
+          </div>
+          <div class="stat">
+            <div class="dropzone" id="dropzone">Přetáhni soubor sem nebo použij „Nahrát soubor“</div>
+            <div class="muted">Velké soubory chvíli trvají – po načtení proběhne analýza automaticky.</div>
+          </div>
+        </div>
+
         <textarea id="text" rows="10" placeholder="Vlož nebo napiš text…">Ahoj světe! Toto je krátký ukázkový text. CH je v češtině digraf.</textarea>
+
         <div class="mini" style="margin-top:10px">
           <label class="stat"><input type="checkbox" id="lower" checked> převést na malá písmena</label>
           <label class="stat"><input type="checkbox" id="stripDia" checked> odstranit diakritiku</label>
           <label class="stat"><input type="checkbox" id="treatCH" checked> „CH“ jako jedno písmeno</label>
           <label class="stat"><input type="checkbox" id="inclNums"> počítat slova vč. čísel</label>
         </div>
+
         <div class="mini" style="margin-top:10px">
           <label class="stat">χ² reference:
             <select id="refLang">
@@ -59,6 +93,14 @@
           <div class="stat">Odstavce: <b id="pars">0</b></div>
           <div class="stat">Prům. délka slova: <b id="avgLen">0</b></div>
         </div>
+
+        <h3 style="margin-top:16px">Exporty (CSV)</h3>
+        <div class="exports">
+          <button class="btn" id="csvMetrics">Exportovat metriky (CSV)</button>
+          <button class="btn" id="csvLetters">Exportovat frekvence písmen (CSV)</button>
+          <button class="btn" id="csvWords">Exportovat frekvence slov (CSV)</button>
+        </div>
+        <div class="muted" style="margin-top:6px">Frekvence slov jsou case-insensitive a respektují volby normalizace výše.</div>
       </div>
     </div>
 
@@ -85,9 +127,8 @@
     const $ = id => document.getElementById(id);
 
     // --- Reference frekvence v % ---
-    // EN (A–Z), zdroj: běžně uváděná distribuce
     const EN_FREQ = {A:8.167,B:1.492,C:2.782,D:4.253,E:12.702,F:2.228,G:2.015,H:6.094,I:6.966,J:0.153,K:0.772,L:4.025,M:2.406,N:6.749,O:7.507,P:1.929,Q:0.095,R:5.987,S:6.327,T:9.056,U:2.758,V:0.978,W:2.360,X:0.150,Y:1.974,Z:0.074};
-    // CZ (A–Z + CH) – zjednodušená aproximace bez diakritiky; „CH“ přidáno ~0.9 %
+    // CZ zjednodušené (bez diakritiky), včetně CH
     const CZ_FREQ = {A:8.6,B:1.7,C:3.0,CH:0.9,D:3.6,E:9.8,F:0.3,G:0.3,H:1.5,I:7.5,J:2.2,K:3.6,L:3.8,M:3.4,N:6.7,O:8.6,P:3.1,Q:0.0,R:4.8,S:4.9,T:5.7,U:3.6,V:4.5,W:0.0,X:0.0,Y:1.7,Z:2.1};
 
     // --- Normalizace textu ---
@@ -107,7 +148,7 @@
       return t.match(re) || [];
     }
 
-    // --- Příprava písmen pro frekvenci (A–Z, volitelně CH jako 1 znak) ---
+    // --- Písmena / abeceda (A–Z, volitelně CH) ---
     function lettersStream(t, treatCH) {
       const up = t.toUpperCase();
       const out = [];
@@ -121,12 +162,9 @@
     }
     function alphabet(treatCH){
       const base = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
-      if (!treatCH) return base;
-      // vložíme CH za C
-      return ['A','B','C','CH','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+      return treatCH ? ['A','B','C','CH','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'] : base;
     }
 
-    // --- Frekvence písmen ---
     function letterFrequencies(t, treatCH){
       const alpha = alphabet(treatCH);
       const counts = Object.fromEntries(alpha.map(a=>[a,0]));
@@ -141,7 +179,6 @@
       return {freq, total, alpha};
     }
 
-    // --- χ² výpočet proti referenci (ignoruje písmena, která reference nemá) ---
     function chiSquare(freqMap, totalLetters, ref) {
       let chi = 0;
       for (const [k, v] of Object.entries(freqMap)) {
@@ -155,7 +192,44 @@
       return chi;
     }
 
-    // --- Hlavní analýza ---
+    // --- Frekvence slov (mapa) ---
+    function wordFrequency(wordsArr) {
+      const m = new Map();
+      for (const w of wordsArr){
+        const key = w.toLowerCase();
+        m.set(key, (m.get(key)||0)+1);
+      }
+      return m; // Map<slovo, count>
+    }
+
+    // --- CSV helpers ---
+    function csvEscape(value){
+      const v = String(value ?? '');
+      return /[",;\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v;
+    }
+    function downloadCSV(filename, rows){
+      const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    }
+
+    // --- Stav poslední analýzy (pro exporty) ---
+    let last = {
+      opts: null,
+      raw: '',
+      norm: '',
+      metrics: null,
+      letters: null,
+      refName: '',
+      ref: null,
+      wordsArr: [],
+      wordFreq: null
+    };
+
     function analyze() {
       const opts = {
         lower: $('lower').checked,
@@ -164,8 +238,9 @@
         includeNumbers: $('inclNums').checked
       };
       const refLang = $('refLang').value;
+      const ref = (refLang==='cz') ? CZ_FREQ : EN_FREQ;
+      const refName = (refLang==='cz') ? 'CZ' : 'EN';
 
-      // normalizace pro slova / znaky
       const raw = $('text').value ?? '';
       const norm = normalizeText(raw, opts);
 
@@ -192,12 +267,10 @@
       // frekvence písmen
       const {freq, total, alpha} = letterFrequencies(norm, opts.treatCH);
 
-      // reference pro χ²
-      const ref = (refLang==='cz') ? CZ_FREQ : EN_FREQ;
       const chi = chiSquare(freq, total, ref);
       $('chiOut').textContent = total ? chi.toFixed(2) : '–';
 
-      // tabulka frekvencí + očekávané %
+      // tabulka frekvencí
       const tbody = $('freqBody'); tbody.innerHTML = '';
       const rows = alpha.map(k => {
         const f = freq[k] || {count:0,pct:0};
@@ -205,7 +278,6 @@
         const delta = f.pct - exp;
         return {k, ...f, exp, deltaAbs: Math.abs(delta), delta};
       });
-      // seřazení podle písmena (už je v abecedě), vykreslení
       for (const r of rows){
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -219,7 +291,7 @@
         tbody.appendChild(tr);
       }
 
-      // TOP odchylky (jen ta písmena, která mají očekávání v referenci)
+      // TOP odchylky
       const dev = rows.filter(r => r.k in ref).sort((a,b)=>b.deltaAbs - a.deltaAbs).slice(0,8);
       const devBody = $('devBody');
       if (dev.length){
@@ -235,16 +307,107 @@
       } else {
         $('topDevCard').style.display = 'none';
       }
+
+      // ulož stav pro exporty
+      last = {
+        opts, raw, norm,
+        metrics: {charsAll, charsNo, lines, pars, wordCount, uniq, ttr, avgLen, chi, lettersTotal: total, refName},
+        letters: {rows, alpha, total},
+        refName, ref,
+        wordsArr: words,
+        wordFreq: wordFrequency(words)
+      };
     }
+
+    // --- CSV exporty ---
+    function exportMetricsCSV(){
+      const m = last.metrics;
+      if (!m){ return; }
+      const rows = [
+        ['metric','value'],
+        ['chars_all', m.charsAll],
+        ['chars_no_spaces', m.charsNo],
+        ['lines', m.lines],
+        ['paragraphs', m.pars],
+        ['words', m.wordCount],
+        ['unique_words', m.uniq],
+        ['ttr', m.ttr],
+        ['avg_word_length', m.avgLen],
+        ['letters_total', m.lettersTotal],
+        ['chi_square', m.chi],
+        ['reference', m.refName],
+        ['options_lower', last.opts.lower],
+        ['options_strip_diacritics', last.opts.stripDia],
+        ['options_treat_CH', last.opts.treatCH],
+        ['options_include_numbers', last.opts.includeNumbers]
+      ];
+      downloadCSV('metrics.csv', rows);
+    }
+
+    function exportLettersCSV(){
+      if (!last.letters){ return; }
+      const rows = [['letter','count','percent','expected_percent','delta_percent']];
+      for (const r of last.letters.rows){
+        rows.push([r.k, r.count, r.pct.toFixed(6), (r.exp||0).toFixed(6), (r.delta||0).toFixed(6)]);
+      }
+      downloadCSV('letter_frequencies.csv', rows);
+    }
+
+    function exportWordsCSV(){
+      if (!last.wordFreq){ return; }
+      // Map -> array, seřadit sestupně podle počtu
+      const arr = Array.from(last.wordFreq.entries()).sort((a,b)=>b[1]-a[1]);
+      const rows = [['word','count']];
+      for (const [w, c] of arr){
+        rows.push([w, c]);
+      }
+      downloadCSV('word_frequencies.csv', rows);
+    }
+
+    // --- Nahrávání souborů ---
+    function readFileToTextarea(file){
+      if (!file) return;
+      const maxPreview = 15000000; // 15 MB – ochrana před extrémními soubory
+      if (file.size > maxPreview) {
+        if (!confirm(`Soubor má ${(file.size/1024/1024).toFixed(1)} MB. Načíst? Může to chvíli trvat.`)) return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        $('text').value = e.target.result || '';
+        analyze();
+      };
+      reader.onerror = () => alert('Soubor se nepodařilo načíst.');
+      reader.readAsText(file, 'utf-8');
+    }
+
+    $('file').addEventListener('change', (e)=>{
+      const f = e.target.files && e.target.files[0];
+      readFileToTextarea(f);
+      e.target.value = ''; // umožní nahrát stejný soubor znovu
+    });
+
+    const dz = $('dropzone');
+    dz.addEventListener('dragover', (e)=>{ e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', ()=> dz.classList.remove('dragover'));
+    dz.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      dz.classList.remove('dragover');
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      readFileToTextarea(f);
+    });
 
     // Dráty UI
     $('analyze').addEventListener('click', analyze);
-    // „živě“, ale s debounce, aby to bylo příjemné při psaní
     let t=null;
     $('text').addEventListener('input', ()=>{ clearTimeout(t); t=setTimeout(analyze, 250); });
     ['lower','stripDia','treatCH','inclNums','refLang'].forEach(id=>{
       $(id).addEventListener('change', analyze);
     });
+
+    // Exporty
+    $('csvMetrics').addEventListener('click', exportMetricsCSV);
+    $('csvLetters').addEventListener('click', exportLettersCSV);
+    $('csvWords').addEventListener('click', exportWordsCSV);
 
     // Start
     analyze();
