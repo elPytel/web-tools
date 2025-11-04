@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Body Heatmap – MVP</title>
+<style>
+  :root{
+    --bg:#0f1116; --card:#121a22; --muted:#8aa0b2; --text:#e7eef6; --border:#223142;
+    --accent:#3b82f6; --radius:14px; --pad:16px;
+  }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:radial-gradient(120% 120% at 10% -10%, #1c2736, var(--bg)); color:var(--text);
+        font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; padding:20px; }
+  .app{ max-width:1100px; margin:0 auto; display:grid; gap:16px; }
+  .card{ background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+         box-shadow:0 20px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04); padding:var(--pad); }
+  h1,h2{ margin: 6px 0 10px }
+  .muted{ color:var(--muted); font-size:13px }
+  .grid{ display:grid; grid-template-columns: 1.1fr 1fr; gap:16px }
+  @media (max-width: 980px){ .grid{ grid-template-columns: 1fr } }
+
+  /* Silueta */
+  .figure-wrap{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; align-items:center }
+  .figure{ width:100%; background:#0c141b; border:1px solid var(--border); border-radius:14px; padding:10px;
+           display:grid; place-items:center }
+  .legend{ display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap }
+  .swatch{ width:16px; height:16px; border-radius:3px; border:1px solid #0004 }
+  .controls{ display:grid; gap:10px }
+  .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+  .btn{ border:1px solid var(--border); background:#0e1620; color:var(--text); padding:10px 14px; border-radius:10px; cursor:pointer; font-size:14px }
+  .btn:hover{ background:#162435; }
+  .btn.primary{ background:linear-gradient(180deg,#6aa0ff,#3b82f6); border-color:#2b60c7; color:#fff }
+  .chip{ border:1px solid var(--border); border-radius:999px; padding:4px 10px; background:#0e1620; color:#cfe1ff; font-size:12px }
+  label small{ color:var(--muted) }
+  input[type="range"]{ width:100% }
+  .list{ max-height:360px; overflow:auto; border:1px solid var(--border); border-radius:12px; padding:10px; background:#0c141b }
+  .ex{ display:flex; gap:8px; align-items:center; padding:6px 4px; border-bottom:1px dashed #1d2a39 }
+  .ex:last-child{ border-bottom:0 }
+  .ex .time{ color:#adbfce; font-size:12px; margin-left:auto }
+  .pill{ border-radius:999px; padding:2px 8px; font-size:12px; border:1px solid #2b3e54; color:#b8c7d6 }
+  .out{ background:#0c141b; border:1px solid var(--border); border-radius:12px; padding:10px; min-height:80px }
+  .two{ display:grid; grid-template-columns: 1fr 1fr; gap:10px }
+  @media (max-width: 700px){ .two{ grid-template-columns:1fr } }
+
+  /* tooltip pro oblasti */
+  .tip{ position:fixed; pointer-events:none; background:#0e1622; border:1px solid #2b3c51; color:#d8e7f7;
+        padding:6px 8px; font-size:12px; border-radius:8px; display:none; z-index:5 }
+
+  /* světlejší režim dle systému */
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#edf3f8; --card:#fff; --text:#0e1b2a; --muted:#54687f; --border:#d7e1ee; --accent:#2563eb }
+    body{ background: radial-gradient(120% 120% at 10% -10%, #e1eaf6, var(--bg)); }
+    .btn{ background:#f7fbff }
+    .chip{ background:#f7fbff; color:#1e293b }
+    .list,.out,.figure{ background:#f7fbff }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <h1>🏃‍♀️ Body Heatmap (MVP)</h1>
+    <div class="muted">Vyber cviky nebo si nech vygenerovat trénink podle cílových partií. Obarvení ukazuje kumulovanou intenzitu (0–100 %).</div>
+  </div>
+
+  <div class="grid">
+    <!-- VIZUALIZACE -->
+    <div class="card">
+      <h2>Vizualizace</h2>
+      <div class="figure-wrap">
+        <div class="figure">
+          <svg id="front" viewBox="0 0 220 520" width="100%" aria-label="přední strana">
+            <!-- Torso -->
+            <g id="chest" data-label="Hrudník">
+              <path d="M70 120 Q110 85 150 120 L150 170 Q110 185 70 170 Z" fill="#203040"/>
+            </g>
+            <g id="abs" data-label="Břicho">
+              <path d="M85 175 L135 175 L135 245 Q110 260 85 245 Z" fill="#203040"/>
+            </g>
+            <!-- Ramena / paže -->
+            <g id="shoulders" data-label="Ramena">
+              <path d="M55 120 Q70 105 85 120 L85 150 Q70 155 55 150 Z" fill="#203040"/>
+              <path d="M135 120 Q150 105 165 120 L165 150 Q150 155 135 150 Z" fill="#203040"/>
+            </g>
+            <g id="biceps" data-label="Bicepsy">
+              <path d="M50 165 Q60 155 70 165 L70 210 Q60 220 50 210 Z" fill="#203040"/>
+              <path d="M150 165 Q160 155 170 165 L170 210 Q160 220 150 210 Z" fill="#203040"/>
+            </g>
+            <g id="forearms" data-label="Předloktí">
+              <path d="M45 215 Q55 205 65 215 L65 265 Q55 280 45 265 Z" fill="#203040"/>
+              <path d="M155 215 Q165 205 175 215 L175 265 Q165 280 155 265 Z" fill="#203040"/>
+            </g>
+            <!-- Nohy -->
+            <g id="quads" data-label="Kvadricepsy">
+              <path d="M85 265 L110 260 L110 365 L85 380 Z" fill="#203040"/>
+              <path d="M110 260 L135 265 L135 380 L110 365 Z" fill="#203040"/>
+            </g>
+            <g id="calves" data-label="Lýtka">
+              <path d="M85 385 L105 390 L105 470 L85 465 Z" fill="#203040"/>
+              <path d="M135 385 L115 390 L115 470 L135 465 Z" fill="#203040"/>
+            </g>
+          </svg>
+        </div>
+        <div class="figure">
+          <svg id="back" viewBox="0 0 220 520" width="100%" aria-label="zadní strana">
+            <!-- Záda -->
+            <g id="traps" data-label="Trapézy">
+              <path d="M75 120 Q110 95 145 120 L140 145 Q110 135 80 145 Z" fill="#203040"/>
+            </g>
+            <g id="lats" data-label="Zádové svaly (lats)">
+              <path d="M70 150 L100 170 L95 230 L70 220 Z" fill="#203040"/>
+              <path d="M150 150 L120 170 L125 230 L150 220 Z" fill="#203040"/>
+            </g>
+            <g id="glutes" data-label="Hýždě">
+              <path d="M85 250 Q110 265 135 250 L135 295 Q110 310 85 295 Z" fill="#203040"/>
+            </g>
+            <g id="hamstrings" data-label="Hamstringy">
+              <path d="M85 300 L105 305 L105 380 L85 370 Z" fill="#203040"/>
+              <path d="M135 300 L115 305 L115 380 L135 370 Z" fill="#203040"/>
+            </g>
+            <g id="calvesB" data-label="Lýtka (zadní)">
+              <path d="M85 385 L105 390 L105 470 L85 465 Z" fill="#203040"/>
+              <path d="M135 385 L115 390 L115 470 L135 465 Z" fill="#203040"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="row" style="justify-content:center; margin-top:10px">
+        <span class="chip" id="toggleView">Přepnout Předek/Záda</span>
+        <div class="legend">
+          <span class="swatch" style="background:#203040"></span><span class="muted">0%</span>
+          <span class="swatch" style="background:#803040"></span><span class="muted">50%</span>
+          <span class="swatch" style="background:#ff4040"></span><span class="muted">100%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- VÝBĚR / GENERÁTOR -->
+    <div class="card">
+      <h2>Výběr cviků</h2>
+      <div class="list" id="exerciseList"></div>
+
+      <h2 style="margin-top:14px">Generátor tréninku</h2>
+      <div class="controls">
+        <label>Hrudník <small>(chest)</small><input type="range" min="0" max="100" value="40" id="t_chest"></label>
+        <label>Záda <small>(lats+traps)</small><input type="range" min="0" max="100" value="40" id="t_back"></label>
+        <label>Nožní předek <small>(quads)</small><input type="range" min="0" max="100" value="40" id="t_quads"></label>
+        <label>Nožní zadek <small>(glutes+hamstrings)</small><input type="range" min="0" max="100" value="40" id="t_post"></label>
+        <label>Ramena/Paže <small>(shoulders+biceps+forearms)</small><input type="range" min="0" max="100" value="30" id="t_arms"></label>
+        <label>Core <small>(abs)</small><input type="range" min="0" max="100" value="20" id="t_core"></label>
+      </div>
+      <div class="two" style="margin-top:8px">
+        <label>Časový limit (min)<input type="number" id="limit" value="30" min="5" max="120" step="5" style="width:100%"></label>
+        <div class="row" style="align-self:end; justify-content:flex-end">
+          <button class="btn" id="clearSel">Vymazat výběr</button>
+          <button class="btn primary" id="suggest">Navrhnout trénink</button>
+        </div>
+      </div>
+      <div class="out" id="planOut" style="margin-top:8px">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Souhrn intenzit</h2>
+    <div class="out" id="summary">—</div>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div class="tip" id="tip"></div>
+
+<script>
+  // ====== Data cviků (MVP) ======
+  // muscles: klíče odpovídají ID ve <svg> (případně agregujeme níže)
+  const EXERCISES = [
+    {id:'pushup', name:'Kliky', time:4, muscles:{chest:.9, triceps:.6, shoulders:.4, abs:.2}},
+    {id:'bench', name:'Bench press (činky)', time:6, muscles:{chest:.95, triceps:.5, shoulders:.5}},
+    {id:'dips', name:'Dipy na bradlech', time:5, muscles:{chest:.7, triceps:.9, shoulders:.4}},
+    {id:'row', name:'Přítahy v předklonu', time:6, muscles:{lats:.8, traps:.3, biceps:.4, forearms:.3}},
+    {id:'pullup', name:'Shyby', time:6, muscles:{lats:.95, biceps:.6, traps:.3, forearms:.5}},
+    {id:'ohp', name:'Tlak nad hlavu', time:5, muscles:{shoulders:.9, triceps:.6, traps:.2}},
+    {id:'plank', name:'Plank', time:3, muscles:{abs:.8}},
+    {id:'crunch', name:'Sedy-lehy', time:4, muscles:{abs:.9}},
+    {id:'squat', name:'Dřepy', time:6, muscles:{quads:.85, glutes:.6, hamstrings:.4, calves:.2}},
+    {id:'lunge', name:'Výpady', time:6, muscles:{quads:.8, glutes:.6, hamstrings:.3, calves:.2}},
+    {id:'deadlift', name:'Mrtvý tah (technický)', time:7, muscles:{glutes:.8, hamstrings:.8, lats:.3, traps:.3}},
+    {id:'calf', name:'Výpony lýtek', time:3, muscles:{calves:.95}},
+    {id:'curl', name:'Biceps zdvih', time:4, muscles:{biceps:.9, forearms:.5}},
+    {id:'tricep', name:'Tricepsové stlačování', time:4, muscles:{triceps:.9, shoulders:.2}},
+  ];
+
+  // Mapování agregovaných cílů -> detailních partií
+  const TARGET_MAP = {
+    chest:['chest'],
+    back:['lats','traps'],
+    quads:['quads'],
+    post:['glutes','hamstrings'],
+    arms:['shoulders','biceps','forearms','triceps'],
+    core:['abs']
+  };
+
+  // ====== UI vykreslení seznamu ======
+  const elList = document.getElementById('exerciseList');
+  EXERCISES.forEach(ex => {
+    const wrap = document.createElement('label');
+    wrap.className = 'ex';
+    wrap.innerHTML = `
+      <input type="checkbox" data-id="${ex.id}">
+      <span>${ex.name}</span>
+      <span class="pill">${Object.keys(ex.muscles).join(', ')}</span>
+      <span class="time">${ex.time} min</span>
+    `;
+    elList.appendChild(wrap);
+  });
+
+  // ====== Heatmapa ======
+  const regions = [
+    'chest','abs','shoulders','biceps','forearms','quads','calves',
+    'traps','lats','glutes','hamstrings','calvesB'
+  ];
+  const intens = Object.fromEntries(regions.map(r => [r, 0]));
+
+  function colorFor(v){
+    // v = 0..1 -> z šedé do červené
+    const clamp = Math.max(0, Math.min(1, v));
+    const r = Math.round(32 + clamp * (255-32));
+    const g = Math.round(48 + (1-clamp) * (64-48));
+    const b = Math.round(64 + (1-clamp) * (64-64));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function clearIntens(){ for (const k of Object.keys(intens)) intens[k]=0; }
+
+  function applyExercises(){
+    clearIntens();
+    document.querySelectorAll('#exerciseList input[type="checkbox"]:checked').forEach(cb=>{
+      const ex = EXERCISES.find(e => e.id === cb.dataset.id);
+      const factor = 1; // prostor pro násobení sérií/opakování
+      for (const [m,val] of Object.entries(ex.muscles)){
+        if (intens[m] != null) intens[m] += val * factor;
+      }
+    });
+    // normalizace na 0..1 (měkké – přepočet k max hodnotě)
+    const maxV = Math.max(1e-6, ...Object.values(intens));
+    for (const k of Object.keys(intens)) intens[k] = Math.min(1, intens[k]/maxV);
+
+    // barvení
+    regions.forEach(id=>{
+      document.querySelectorAll('#'+id+' path').forEach(p=>{
+        p.setAttribute('fill', colorFor(intens[id]));
+      });
+    });
+
+    // souhrn
+    const sumLines = regions.map(r => `${r.padEnd(10, ' ')} : ${(intens[r]*100|0)} %`).join('\n');
+    document.getElementById('summary').textContent = sumLines || '—';
+  }
+
+  // eventy na checkboxech
+  elList.addEventListener('change', applyExercises);
+
+  // přepínání předek/záda (jen zviditelnění obou boxů)
+  const toggleViewBtn = document.getElementById('toggleView');
+  let frontVisible = true;
+  toggleViewBtn.addEventListener('click', ()=>{
+    frontVisible = !frontVisible;
+    document.getElementById('front').parentElement.style.opacity = frontVisible?1:.15;
+    document.getElementById('back').parentElement.style.opacity = frontVisible?.15:1;
+  });
+
+  // Tooltip na oblastech
+  const tip = document.getElementById('tip');
+  function showTip(e, id){
+    tip.style.display='block';
+    tip.textContent = `${e.target.parentNode.getAttribute('data-label') || id}: ${(intens[id]*100|0)} %`;
+    tip.style.left = (e.clientX + 12) + 'px';
+    tip.style.top  = (e.clientY + 12) + 'px';
+  }
+  function hideTip(){ tip.style.display='none'; }
+  regions.forEach(id=>{
+    document.getElementById(id)?.addEventListener('mousemove', (e)=>showTip(e,id));
+    document.getElementById(id)?.addEventListener('mouseleave', hideTip);
+  });
+
+  // ====== Generátor tréninku (greedy scoring) ======
+  function getTargets(){
+    return {
+      chest: +document.getElementById('t_chest').value/100,
+      back:  +document.getElementById('t_back').value/100,
+      quads: +document.getElementById('t_quads').value/100,
+      post:  +document.getElementById('t_post').value/100,
+      arms:  +document.getElementById('t_arms').value/100,
+      core:  +document.getElementById('t_core').value/100,
+    };
+  }
+  function exVector(ex){
+    // převod detailních svalů cviku na agregované osy
+    const v = {chest:0,back:0,quads:0,post:0,arms:0,core:0};
+    for (const [m,val] of Object.entries(ex.muscles)){
+      for (const [t, list] of Object.entries(TARGET_MAP)){
+        if (list.includes(m)) v[t] += val;
+      }
+    }
+    return v;
+  }
+  function dot(a,b){ return a.chest*b.chest + a.back*b.back + a.quads*b.quads + a.post*b.post + a.arms*b.arms + a.core*b.core; }
+  function norm(a){ return Math.sqrt(dot(a,a)) || 1; }
+  function cosineScore(ex, target){
+    const v = exVector(ex);
+    return dot(v,target) / (norm(v)*norm(target));
+  }
+
+  function suggestPlan(){
+    const target = getTargets();
+    const limit = Math.max(5, Math.min(180, +document.getElementById('limit').value||30));
+    // seřadíme podle skóre
+    const scored = EXERCISES
+      .map(e => ({ex:e, score: cosineScore(e, target)}))
+      .sort((a,b)=>b.score-a.score);
+
+    const pick = [];
+    let time = 0;
+    const usedPrimary = {chest:0,back:0,quads:0,post:0,arms:0,core:0};
+
+    for (const s of scored){
+      // jednoduchá penalizace opakování stejné osy
+      const v = exVector(s.ex);
+      const mainAxis = Object.entries(v).sort((a,b)=>b[1]-a[1])[0][0];
+      const penalty = 1 - Math.min(0.4, usedPrimary[mainAxis]*0.15);
+      const adjScore = s.score * penalty;
+
+      if (adjScore < 0.25) continue; // odfiltrování, co moc nesedí
+      if (time + s.ex.time > limit) continue;
+
+      pick.push(s.ex);
+      time += s.ex.time;
+      usedPrimary[mainAxis] += 1;
+      if (time >= limit-2) break;
+    }
+
+    if (!pick.length){ document.getElementById('planOut').textContent = 'Žádný vhodný plán pro zadané cíle/limit.'; return; }
+
+    // vykreslit plán + zaškrtnout položky
+    document.getElementById('planOut').innerHTML =
+      pick.map(p => `• ${p.name} <span class="muted">(${p.time} min)</span>`).join('<br>') +
+      `<br><br><b>Odhad času:</b> ${time} min`;
+
+    // zaškrtni výběr a přepočítej heatmapu
+    document.querySelectorAll('#exerciseList input[type="checkbox"]').forEach(cb=>{
+      cb.checked = pick.some(p => p.id === cb.dataset.id);
+    });
+    applyExercises();
+  }
+
+  // Ovládání
+  document.getElementById('suggest').addEventListener('click', suggestPlan);
+  document.getElementById('clearSel').addEventListener('click', ()=>{
+    document.querySelectorAll('#exerciseList input[type="checkbox"]').forEach(cb=>cb.checked=false);
+    applyExercises();
+    document.getElementById('planOut').textContent = '—';
+  });
+
+  // Start
+  applyExercises();
+</script>
+</body>
+</html>
