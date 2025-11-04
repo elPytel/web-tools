@@ -1,0 +1,351 @@
+/* 7-SEGMENT DISPLAY */
+.seg-display {
+    display: flex;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #0d1115;
+    border: 1px solid #07090c;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, .6);
+}
+
+/* Day theme: make 7-seg panel light background for readability */
+body.day .seg-display {
+    background: #ffffff;
+    border-color: #e6e9ec;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+.digit {
+    position: relative;
+    width: 46px;
+    height: 80px;
+    filter: drop-shadow(0 0 6px rgba(0, 0, 0, .6));
+}
+
+.seg {
+    position: absolute;
+    background: var(--seg-off);
+    border-radius: 6px;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, .06), inset 0 -2px 4px rgba(0, 0, 0, .5);
+    transition: background .06s;
+}
+
+.seg.on {
+    background: var(--seg-on);
+    box-shadow:
+        0 0 10px var(--seg-glow), 0 0 18px var(--seg-glow),
+        inset 0 2px 4px rgba(255, 255, 255, .15), inset 0 -2px 4px rgba(0, 0, 0, .55);
+}
+
+/* segment positions: a b c d e f g */
+.a {
+    top: 4px;
+    left: 8px;
+    right: 8px;
+    height: 8px;
+}
+
+.d {
+    bottom: 4px;
+    left: 8px;
+    right: 8px;
+    height: 8px;
+}
+
+.g {
+    top: calc(50% - 4px);
+    left: 8px;
+    right: 8px;
+    height: 8px;
+}
+
+.b {
+    top: 8px;
+    right: 4px;
+    width: 8px;
+    height: calc(50% - 12px);
+    border-radius: 6px;
+}
+
+.c {
+    bottom: 8px;
+    right: 4px;
+    width: 8px;
+    height: calc(50% - 12px);
+}
+
+.e {
+    bottom: 8px;
+    left: 4px;
+    width: 8px;
+    height: calc(50% - 12px);
+}
+
+.f {
+    top: 8px;
+    left: 4px;
+    width: 8px;
+    height: calc(50% - 12px);
+}
+
+.dp {
+    position: absolute;
+    right: -10px;
+    bottom: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--seg-off);
+}
+
+.dp.on {
+    background: var(--seg-on);
+    box-shadow: 0 0 10px var(--seg-glow);
+}
+
+/* TOGGLE SWITCH (kolébka 0/1) */
+.rocker {
+    width: 86px;
+    height: 44px;
+    padding: 6px;
+    border-radius: 12px;
+    background: var(--switch-bg);
+    border: 1px solid var(--switch-edge);
+    box-shadow: inset 0 8px 18px rgba(0, 0, 0, .6), inset 0 2px 0 rgba(255, 255, 255, .06);
+    position: relative;
+    display: inline-block;
+}
+
+.rocker input {
+    display: none;
+}
+
+.rocker .thumb {
+    position: absolute;
+    inset: 6px;
+    border-radius: 10px;
+    background: linear-gradient(#2d333a, #191d22);
+    box-shadow: var(--btn-shadow);
+    transition: transform .15s cubic-bezier(.2, .8, .2, 1);
+}
+
+.rocker .label0,
+.rocker .label1 {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #9aa4b2;
+    user-select: none;
+}
+
+.rocker .label0 {
+    left: 10px;
+}
+
+.rocker .label1 {
+    right: 10px;
+}
+
+.rocker input:checked+.thumb {
+    transform: translateX(42px);
+}
+
+.rocker input:checked~.label1 {
+    color: #cdeafe;
+}
+
+.rocker input:not(:checked)~.label0 {
+    color: #cdeafe;
+}
+
+/* LEVER SWITCH (páčkový) */
+.lever {
+    width: 70px;
+    height: 70px;
+    display: grid;
+    place-items: center;
+    background: #0e1216;
+    border-radius: 12px;
+    border: 1px solid #0b0d10;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, .7);
+}
+
+.lever input {
+    display: none;
+}
+
+.lever .shaft {
+    width: 6px;
+    height: 36px;
+    background: linear-gradient(#d5d9e0, #7b818a, #3a3f46);
+    border-radius: 3px;
+    transform-origin: 50% 90%;
+    transform: rotate(-30deg);
+    transition: transform .15s ease;
+    position: relative;
+}
+
+.lever .tip {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 18px;
+    background: radial-gradient(circle at 35% 35%, #fafafa, #c0c5cc 60%, #8a8f97);
+    border-radius: 50%;
+    box-shadow: inset 0 2px 3px rgba(255, 255, 255, .6), inset 0 -3px 7px rgba(0, 0, 0, .35);
+}
+
+.lever input:checked+.shaft {
+    transform: rotate(30deg);
+}
+
+/* ROUND PUSH BUTTONS */
+.push {
+    --c: #d32f2f;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 28%, #fff8, transparent 40%), radial-gradient(circle at 50% 60%, #0004, transparent 50%), var(--c);
+    box-shadow: var(--btn-shadow), 0 0 0 2px #000 inset;
+    border: 1px solid #0008;
+    cursor: pointer;
+    display: inline-grid;
+    place-items: center;
+    transition: transform .06s ease, filter .06s ease;
+}
+
+.push:active {
+    transform: translateY(1px);
+    filter: brightness(.95);
+}
+
+.push.green {
+    --c: #2e7d32;
+}
+
+.push.blue {
+    --c: #2962ff;
+}
+
+.push.yellow {
+    --c: #f59e0b;
+}
+
+.push:after {
+    content: '';
+    width: 60%;
+    height: 60%;
+    border-radius: 50%;
+    box-shadow: inset 0 4px 10px rgba(255, 255, 255, .35), inset 0 -8px 12px rgba(0, 0, 0, .45);
+}
+
+/* LED INDICATORS */
+.led {
+    --size: 18px;
+    --on: 0;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fff9, transparent 40%), currentColor;
+    color: #0f172a;
+    /* default off color fallback */
+    box-shadow: 0 0 0 2px #000a inset, 0 2px 6px rgba(0, 0, 0, .6);
+    filter: saturate(calc(.3 + .7 * var(--on)));
+}
+
+.led.on {
+    box-shadow: var(--led-shadow);
+}
+
+.led.red {
+    color: #ef4444;
+}
+
+.led.green {
+    color: #22c55e;
+}
+
+.led.amber {
+    color: #f59e0b;
+}
+
+.led.blue {
+    color: #60a5fa;
+}
+
+/* KNOB (otočné kolečko) */
+.knob {
+    --angle: 40deg;
+    /* demo otočení */
+    width: var(--knob-dia);
+    height: var(--knob-dia);
+    border-radius: 50%;
+    background:
+        radial-gradient(70% 70% at 50% 30%, #ffffff20, transparent 60%),
+        radial-gradient(100% 100% at 50% 120%, #000000aa, transparent 60%),
+        var(--knob-face);
+    border: 1px solid #0b0d10;
+    position: relative;
+    box-shadow:
+        0 10px 22px rgba(0, 0, 0, .45),
+        inset 0 2px 12px rgba(255, 255, 255, .06),
+        inset 0 -12px 20px rgba(0, 0, 0, .6);
+}
+
+.knob:before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, transparent 55%, #0b0d10 56%, #0b0d10 58%, transparent 60%);
+}
+
+/* Needle style (ručka) */
+.knob .needle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 3px;
+    height: 44%;
+    transform-origin: bottom center;
+    transform: translate(-50%, -100%) rotate(var(--angle));
+    background: linear-gradient(180deg, #fff6, #0006);
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(0,0,0,.6), 0 0 6px rgba(255,255,255,.12) inset;
+}
+
+/* small indicator dot placed on rim to show exact position (like audio knobs) */
+.knob .indicator {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--knob-mark);
+    transform-origin: center;
+    /* position dot at radius; will be moved by JS via transform rotate + translate */
+    transform: rotate(var(--angle)) translate(0, -48%);
+    box-shadow: 0 2px 6px rgba(0,0,0,.6), 0 0 6px rgba(255,255,255,.06) inset;
+}
+
+/* knob360: hide indicator until user interacts to avoid visible default 'stop' */
+.knob360 .indicator { opacity: 0; transition: opacity .12s ease; }
+.knob360.active .indicator { opacity: 1; }
+
+.knob .ticks {
+    position: absolute;
+    inset: 7px;
+    border-radius: 50%;
+    pointer-events: none;
+    background:
+        conic-gradient(from -140deg, #ffffff55 0 2deg, transparent 2deg 20deg);
+    mask: radial-gradient(circle, transparent 56%, black 57%);
+}
+
+/* For full-rotation knobs we don't want a visible start 'wedge' (default stop) - make ticks neutral */
+.knob360 .ticks {
+    background: conic-gradient(#ffffff20 0 360deg);
+    mask: radial-gradient(circle, transparent 56%, black 57%);
+}

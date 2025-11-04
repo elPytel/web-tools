@@ -1,0 +1,149 @@
+/* ========= Base variables ========= */
+:root{
+  --size-std-w: 58px;   /* šířka viditelné kolébky (std) */
+  --size-std-h: 34px;   /* výška viditelné kolébky (std) */
+  --size-mini-w: 44px;  /* mini varianta */
+  --size-mini-h: 26px;
+
+  /* barvy těla (rámu do panelu) */
+  --frame-black: #0f1317;
+  --frame-white: #e9ecef;
+
+  /* kolébka */
+  --rock-black:  #161a1f;
+  --rock-white:  #fafafa;
+
+  /* červená „svítící“ */
+  --red-off: #8b1b1b;
+  --red-on:  #d62828;
+  --red-glow: #ff3b3b77;
+
+  /* text symbolů */
+  --sym-dark: #0d0f12;
+  --sym-light:#f7fafc;
+
+  --bevel-hi: rgba(255,255,255,.22);
+  --bevel-lo: rgba(0,0,0,.55);
+}
+
+/* demo obal */
+.rocker-wrap{ display:flex; gap:24px; align-items:center; flex-wrap:wrap }
+
+/* ========= Komponenta ========= */
+.rocker{
+  position:relative; display:inline-grid; place-items:center;
+  padding:6px; border-radius:4px;
+  user-select:none; cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.rocker input{ position:absolute; opacity:0; inset:0; cursor:pointer; }
+/* ensure the invisible input sits above decorative frame so clicks reach it reliably */
+.rocker input { z-index: 2; }
+.rocker .frame { z-index: 1; }
+
+/* rám (zacvakávací límec do panelu) */
+.rocker .frame{
+  position:absolute; inset:0;
+  border-radius:4px; box-shadow:
+    inset 0 1px 0 var(--bevel-hi),
+    inset 0 -1px 0 var(--bevel-lo),
+    0 10px 18px rgba(0,0,0,.35);
+}
+
+/* samotná kolébka */
+.rocker .rock{
+  position:relative; border-radius:6px; overflow:hidden;
+  width: var(--w); height: var(--h);
+  background: var(--rock-bg);
+  box-shadow:
+    inset 0 2px 4px rgba(255,255,255,.06),
+    inset 0 -6px 12px rgba(0,0,0,.45);
+  transform: perspective(160px) rotateX(var(--tilt, -16deg));
+  transition: transform .12s cubic-bezier(.2,.8,.2,1), background .12s, box-shadow .12s;
+}
+
+/* „světlý/temný“ lesk na hranách kolébky */
+.rocker .rock::before{
+  content:""; position:absolute; inset:0;
+  background:
+    linear-gradient(#ffffff22, transparent 40%) top,
+    linear-gradient(transparent 60%, #00000066) bottom;
+  background-repeat:no-repeat; background-size:100% 60%;
+  pointer-events:none;
+}
+
+/* text „I“ / „O“ */
+.rocker .sym{
+  position:absolute; font-weight:700; font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  font-size: calc(var(--h) * .48);
+  line-height:1; letter-spacing:.02em; pointer-events:none;
+  text-shadow: 0 1px 0 rgba(255,255,255,.2), 0 -1px 0 rgba(0,0,0,.5);
+}
+.rocker .sym-on{ left:18%; top:12%; color: var(--sym-color); }
+.rocker .sym-off{ right:18%; bottom:12%; color: var(--sym-color); }
+
+/* vnitřní „mřížkovaná“ textura pro červenou verzi */
+.face--grid{
+  position:absolute; inset:0; mix-blend-mode:screen; opacity:.45;
+  background:
+    radial-gradient(circle at 50% 50%, #fff 0 1px, transparent 1px) 0 0/6px 6px,
+    radial-gradient(circle at 50% 50%, #fff 0 1px, transparent 1px) 3px 3px/6px 6px;
+  pointer-events:none;
+}
+
+/* indikátor LED (jen pro pocit hloubky) */
+.rocker .led{
+  position:absolute; inset:6px 12px auto auto;
+  width: 8px; height: 8px; border-radius:50%;
+  background:#00000066; box-shadow: inset 0 1px 2px #000;
+  pointer-events:none; opacity:.6;
+}
+
+/* stavy při zapnutí – naklonění opačným směrem */
+.rocker input:checked ~ .rock{ --tilt: 16deg; }
+
+/* ========= Varianty ========= */
+
+/* MINI WHITE */
+.rocker--mini{
+  --w: var(--size-mini-w);
+  --h: var(--size-mini-h);
+  --rock-bg: var(--rock-white);
+  --sym-color: var(--sym-dark);
+}
+.rocker--mini .frame{
+  background: var(--frame-white);
+  border: 1px solid #cfd6de;
+}
+
+/* make mini variant respond visually to checked state */
+.rocker--mini input:checked ~ .rock{ --tilt: 16deg; }
+.rocker--mini input:checked ~ .frame { box-shadow: inset 0 8px 18px rgba(0,0,0,.35); }
+
+/* BLACK + RED illuminated (jako na fotce) */
+.rocker--std{
+  --w: var(--size-std-w);
+  --h: var(--size-std-h);
+  --sym-color: var(--sym-light);
+}
+.rocker--std[data-theme="black-red"] .frame{
+  background: var(--frame-black);
+  border: 1px solid #0a0d10;
+}
+.rocker--std[data-theme="black-red"] .rock{
+  --rock-bg: linear-gradient(#6d0f0f, #350909);
+  background: var(--red-off);
+  color:#fff;
+  box-shadow:
+    inset 0 2px 6px rgba(255,255,255,.08),
+    inset 0 -10px 18px rgba(0,0,0,.6);
+}
+/* rozsvícení + „glow“ při ON */
+.rocker--std[data-theme="black-red"] input:checked ~ .rock{
+  background: linear-gradient(#ff5a5a, #c91818);
+  box-shadow:
+    0 0 16px var(--red-glow),
+    0 0 36px var(--red-glow),
+    inset 0 2px 8px rgba(255,255,255,.18),
+    inset 0 -12px 22px rgba(0,0,0,.55);
+}

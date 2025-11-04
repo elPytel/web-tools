@@ -34,10 +34,10 @@ button {
   font-size: 14px;
 }
 
+/* Don't change button color on hover — buttons should not turn blue.
+   Keep a subtle elevation instead. */
 button:hover {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
+  box-shadow: 0 8px 20px rgba(0,0,0,.08);
 }
 
 h1, h2, h3 {

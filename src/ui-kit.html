@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="cs">
+
+<head>
+    <meta charset="utf-8">
+    <title>HW UI Kit – 7-segment, přepínače, tlačítka, LED, knoflík</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- volitelně: tvůj společný vzhled -->
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./css/rocker.css">
+    <link rel="stylesheet" href="./css/hw-ui-kit.css">
+    <style>
+        :root {
+            --panel-bg: #1b1d20;
+            --panel-edge: #0f1114;
+            --bevel-light: rgba(255, 255, 255, .08);
+            --bevel-dark: rgba(0, 0, 0, .5);
+
+            --seg-off: #1a242a;
+            --seg-on: #ff2a2a;
+            --seg-glow: #ff2a2a55;
+
+            --switch-bg: #202429;
+            --switch-track: #0d0f12;
+            --switch-edge: #0a0c0f;
+
+            --btn-shadow: 0 6px 18px rgba(0, 0, 0, .35), inset 0 2px 0 rgba(255, 255, 255, .08), inset 0 -6px 12px rgba(0, 0, 0, .35);
+            --led-shadow: 0 0 10px currentColor, inset 0 2px 4px rgba(255, 255, 255, .2), inset 0 -3px 6px rgba(0, 0, 0, .5);
+
+            --knob-dia: 84px;
+            --knob-face: #2a2d31;
+            --knob-mark: #e9edf5;
+            --knob-ring: #121418;
+        }
+
+        body {
+            background: #101215;
+            color: #e5e7eb;
+        }
+
+        /* Day theme overrides (togglable via body.day) */
+        body.day {
+            background: #f7fafc;
+            color: #0f172a;
+        }
+
+        body.day .panel {
+            background: radial-gradient(120% 120% at 30% 10%, #ffffff, #f3f4f6);
+            box-shadow: inset 0 2px 0 rgba(255, 255, 255, .6), inset 0 -2px 0 rgba(0, 0, 0, .06), 0 10px 30px rgba(0, 0, 0, .06);
+            border: 1px solid #e6e9ec;
+        }
+
+        body.day .card {
+            background: white;
+            border-color: #e9eef3;
+            color: #111
+        }
+
+        body.day .label {
+            color: #6b7280
+        }
+
+        /* Invert 7-seg colors for day */
+        body.day {
+            --seg-off: #f1f5f9;
+            --seg-on: #111827;
+            --seg-glow: rgba(17, 24, 39, .12);
+        }
+
+        /* Make knobs and buttons lighter */
+        body.day {
+            --knob-face: #f3f4f6;
+            --knob-mark: #0b1220;
+        }
+
+        .panel {
+            background: radial-gradient(120% 120% at 30% 10%, #22272e, var(--panel-bg));
+            box-shadow:
+                inset 0 2px 0 var(--bevel-light),
+                inset 0 -2px 0 var(--bevel-dark),
+                0 20px 50px rgba(0, 0, 0, .45);
+            border: 1px solid #0b0d10;
+            border-radius: 16px;
+            padding: 18px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        h1,
+        h2 {
+            margin: 0 0 10px
+        }
+
+        /* layout helpers */
+        .rowline {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        .label {
+            font-size: 12px;
+            color: #9aa4b2
+        }
+
+        .spacer {
+            height: 8px
+        }
+    </style>
+</head>
+
+<body class="day">
+    <div class="app panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <h1 style="margin:0">🔌 HW UI Kit</h1>
+            <div style="display:flex;gap:10px;align-items:center">
+                <label style="font-size:13px;color:#9aa4b2">Den / Noc</label>
+                <label style="display:flex;align-items:center;gap:8px">
+                    <input id="themeToggle" type="checkbox" aria-label="Denní režim">
+                    <span style="font-size:13px;color:#9aa4b2">Denní</span>
+                </label>
+            </div>
+        </div>
+        <div class="grid">
+            <!-- 7 segment -->
+            <div class="card">
+                <h2>7-segmentový displej</h2>
+                <div class="seg-display" id="segDemo">
+                    <!-- jeden digit -->
+                    <div class="digit">
+                        <div class="seg a"></div>
+                        <div class="seg b"></div>
+                        <div class="seg c"></div>
+                        <div class="seg d"></div>
+                        <div class="seg e"></div>
+                        <div class="seg f"></div>
+                        <div class="seg g"></div>
+                        <div class="dp"></div>
+                    </div>
+                    <div class="digit">
+                        <div class="seg a"></div>
+                        <div class="seg b"></div>
+                        <div class="seg c"></div>
+                        <div class="seg d"></div>
+                        <div class="seg e"></div>
+                        <div class="seg f"></div>
+                        <div class="seg g"></div>
+                        <div class="dp"></div>
+                    </div>
+                    <div class="digit">
+                        <div class="seg a"></div>
+                        <div class="seg b"></div>
+                        <div class="seg c"></div>
+                        <div class="seg d"></div>
+                        <div class="seg e"></div>
+                        <div class="seg f"></div>
+                        <div class="seg g"></div>
+                        <div class="dp"></div>
+                    </div>
+                </div>
+                <div class="rowline">
+                    <span class="label">Demo hodnota:</span>
+                    <input id="segInput" type="text" value="123" maxlength="3" style="width:90px">
+                </div>
+            </div>
+
+            <!-- kolébka 0/1 -->
+            <div class="card">
+                <h2>Kolébka 0/1</h2>
+                <label class="rocker">
+                    <input type="checkbox" id="rock">
+                    <span class="thumb"></span>
+                    <span class="label0">0</span>
+                    <span class="label1">1</span>
+                </label>
+                <div class="spacer"></div>
+                <h2>Páčkový přepínač</h2>
+                <label class="lever">
+                    <input type="checkbox" id="lev">
+                    <span class="shaft"><span class="tip"></span></span>
+                </label>
+            </div>
+
+            <div class="card">
+                <h2>Kolébka v2</h2>
+                <div class="rocker-wrap">
+                    <!-- MINI WHITE -->
+                    <label class="rocker rocker--mini" data-theme="white">
+                        <input type="checkbox" aria-label="Napájení" role="switch">
+                        <span class="frame"></span>
+                        <span class="rock">
+                            <span class="face">
+                                <span class="sym sym-on">I</span>
+                                <span class="sym sym-off">O</span>
+                            </span>
+                        </span>
+                    </label>
+                </div>
+
+                <!-- BLACK + RED ILLUMINATED -->
+                <label class="rocker rocker--std" data-theme="black-red">
+                    <input type="checkbox" aria-label="Spínač světel" role="switch">
+                    <span class="frame"></span>
+                    <span class="rock">
+                        <span class="face face--grid"></span> <!-- „zrnitá“ textura -->
+                        <span class="led"></span> <!-- vnitřní indikace -->
+                        <span class="sym sym-on">I</span>
+                        <span class="sym sym-off">O</span>
+                    </span>
+                </label>
+            </div>
+
+            <!-- kulatá tlačítka + LED -->
+            <div class="card">
+                <h2>Kulatá tlačítka</h2>
+                <div class="rowline">
+                    <button class="push red" aria-label="Červené"></button>
+                    <button class="push green" aria-label="Zelené"></button>
+                    <button class="push blue" aria-label="Modré"></button>
+                    <button class="push yellow" aria-label="Žluté"></button>
+                </div>
+                <div class="spacer"></div>
+                <h2>LED indikátory</h2>
+                <div class="rowline">
+                    <span class="led red on" title="RED"></span>
+                    <span class="led green on" title="GREEN"></span>
+                    <span class="led amber" title="AMBER (off)"></span>
+                    <span class="led blue on" title="BLUE"></span>
+                </div>
+            </div>
+
+            <!-- knoflík -->
+            <div class="card">
+                <h2>Otočný knoflík</h2>
+                <div class="rowline" style="align-items:flex-start">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+                        <div class="knob gage" id="gage" title="Gage (drag)" role="slider" aria-valuemin="-140"
+                            aria-valuemax="140" aria-valuenow="40">
+                            <div class="ticks"></div>
+                            <div class="needle"></div>
+                        </div>
+                        <div style="font-size:12px;color:#9aa4b2">Gage (omezený): tažením myší / touch otáčej</div>
+                    </div>
+                    <div>
+                        <label class="label">Úhel gage (°)</label>
+                        <input type="range" id="gageRange" min="-140" max="140" value="40" style="width:220px">
+                    </div>
+                </div>
+
+                <div class="rowline" style="align-items:flex-start;margin-top:8px">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+                        <div class="knob knob360" id="knob360" title="Rotary knob 360° (drag)" role="slider"
+                            aria-valuemin="0" aria-valuemax="359" aria-valuenow="0">
+                            <div class="ticks"></div>
+                            <div class="indicator" aria-hidden="true"></div>
+                        </div>
+                        <div style="font-size:12px;color:#9aa4b2">Rotary 360°: tažením myší / touch otáčej</div>
+                    </div>
+                    <div>
+                        <label class="label">Rotace (°)</label>
+                        <input type="range" id="knob360Range" min="0" max="359" value="0" style="width:220px">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Malé demo skripty jen pro náhled; v ostré verzi si je můžeš nahradit logikou -->
+    <script>
+        // 7-segment demo (mapa segmentů pro číslice 0–9)
+        const MAP = {
+            "0": "abcef d".replace(/\s/g, ''), "1": "bc", "2": "abged", "3": "abgcd", "4": "fgbc",
+            "5": "afgcd", "6": "afgecd", "7": "abc", "8": "abcdefg", "9": "abfgcd", "-": "g", " ": ""
+        };
+        const segDisplay = document.getElementById('segDemo');
+        function setDigit(el, char) {
+            const on = (MAP[char] || "").split('');
+            el.querySelectorAll('.seg').forEach(s => s.classList.remove('on'));
+            el.querySelectorAll('.dp').forEach(s => s.classList.remove('on'));
+            on.forEach(k => { const seg = el.querySelector('.' + k); if (seg) seg.classList.add('on'); });
+            if (char === '.') el.querySelector('.dp')?.classList.add('on');
+        }
+        function renderValue(val) {
+            const digits = segDisplay.querySelectorAll('.digit');
+            const chars = (val + "").slice(0, digits.length).padStart(digits.length, ' ').split('');
+            digits.forEach((d, i) => setDigit(d, chars[i] === '.' ? '.' : chars[i]));
+        }
+        renderValue("123");
+        document.getElementById('segInput').addEventListener('input', e => renderValue(e.target.value));
+
+        // knob demo
+        // Gage (limited needle)
+        const gage = document.getElementById('gage');
+        const gageRange = document.getElementById('gageRange');
+        const setGageAngle = ang => {
+            gage.style.setProperty('--angle', `${ang}deg`);
+            gage.setAttribute('aria-valuenow', ang);
+        };
+        setGageAngle(gageRange.value);
+        gageRange.addEventListener('input', e => setGageAngle(e.target.value));
+
+        // interactive gage: drag to rotate (limited)
+        (function () {
+            let dragging = false;
+            const rect = () => gage.getBoundingClientRect();
+            function pointerAngle(clientX, clientY) {
+                const r = rect();
+                const cx = r.left + r.width / 2;
+                const cy = r.top + r.height / 2;
+                const dx = clientX - cx; const dy = clientY - cy;
+                const ang = Math.atan2(dy, dx) * 180 / Math.PI; // -180..180
+                return ang;
+            }
+            function toGageRange(a) {
+                let v = a;
+                if (v < -180) v += 360; if (v > 180) v -= 360;
+                v = Math.max(-140, Math.min(140, Math.round(v)));
+                return v;
+            }
+            function onMove(clientX, clientY) { const a = pointerAngle(clientX, clientY); const v = toGageRange(a); setGageAngle(v); gageRange.value = v; }
+            gage.addEventListener('pointerdown', (ev) => { ev.preventDefault(); dragging = true; gage.setPointerCapture(ev.pointerId); onMove(ev.clientX, ev.clientY); });
+            window.addEventListener('pointermove', (ev) => { if (!dragging) return; onMove(ev.clientX, ev.clientY); });
+            window.addEventListener('pointerup', (ev) => { if (!dragging) return; dragging = false; try { gage.releasePointerCapture(ev.pointerId); } catch (e) { } });
+        })();
+
+        // Rotary 360 (full rotation)
+        const knob360 = document.getElementById('knob360');
+        const knob360Range = document.getElementById('knob360Range');
+            const setKnob360 = ang => {
+                knob360.style.setProperty('--angle', `${ang}deg`);
+                // update indicator transform; visibility controlled by .active class
+                const ind = knob360.querySelector('.indicator');
+                if (ind) ind.style.transform = `rotate(${ang}deg) translate(0, -42%)`;
+                knob360.setAttribute('aria-valuenow', ang);
+            };
+            setKnob360(knob360Range.value);
+            knob360Range.addEventListener('input', e => { knob360.classList.add('active'); setKnob360(e.target.value); });
+
+        (function () {
+            let dragging = false;
+            const rect360 = () => knob360.getBoundingClientRect();
+            function pointerAngle360(clientX, clientY) {
+                const r = rect360(); const cx = r.left + r.width / 2; const cy = r.top + r.height / 2;
+                const dx = clientX - cx; const dy = clientY - cy;
+                let ang = Math.atan2(dy, dx) * 180 / Math.PI; // -180..180
+                if (ang < 0) ang += 360; // normalize 0..360
+                return Math.round(ang);
+            }
+            function onMove360(clientX, clientY) { const a = pointerAngle360(clientX, clientY); knob360.classList.add('active'); setKnob360(a); knob360Range.value = a; }
+            knob360.addEventListener('pointerdown', (ev) => { ev.preventDefault(); dragging = true; knob360.classList.add('active'); knob360.setPointerCapture(ev.pointerId); onMove360(ev.clientX, ev.clientY); });
+            window.addEventListener('pointermove', (ev) => { if (!dragging) return; onMove360(ev.clientX, ev.clientY); });
+            window.addEventListener('pointerup', (ev) => { if (!dragging) return; dragging = false; try { knob360.releasePointerCapture(ev.pointerId); } catch (e) { } });
+        })();
+
+        // make sure rocker visuals reflect checked state (adds convenience class)
+        document.querySelectorAll('.rocker').forEach(lbl => {
+            const inp = lbl.querySelector('input[type="checkbox"]');
+            if (!inp) return;
+            const apply = () => { if (inp.checked) lbl.classList.add('is-on'); else lbl.classList.remove('is-on'); };
+            inp.addEventListener('change', apply);
+            apply();
+        });
+
+        // theme toggle (day/night)
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.addEventListener('change', (e) => {
+            if (e.target.checked) document.body.classList.add('day'); else document.body.classList.remove('day');
+        });
+
+        // Push buttons should light corresponding LED while pressed
+        document.querySelectorAll('.push').forEach(btn => {
+            // determine color class on the button (red, green, blue, yellow)
+            const cls = ['red','green','blue','yellow'].find(c => btn.classList.contains(c));
+            if (!cls) return;
+            const ledColor = cls === 'yellow' ? 'amber' : cls; // map yellow->amber
+            const findLed = () => btn.closest('.card')?.querySelector('.led.'+ledColor);
+            let led = findLed();
+
+            const setOn = (v) => {
+                led = led || findLed();
+                if (!led) return;
+                if (v) led.classList.add('on'); else led.classList.remove('on');
+            };
+
+            btn.addEventListener('pointerdown', (ev) => { ev.preventDefault(); setOn(true); try{ btn.setPointerCapture(ev.pointerId); } catch(e){} });
+            btn.addEventListener('pointerup', (ev) => { setOn(false); try{ btn.releasePointerCapture(ev.pointerId); } catch(e){} });
+            btn.addEventListener('pointercancel', () => setOn(false));
+            btn.addEventListener('pointerleave', () => setOn(false));
+
+            // keyboard support: Space or Enter
+            btn.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' || e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setOn(true); }
+            });
+            btn.addEventListener('keyup', (e) => {
+                if (e.code === 'Space' || e.key === ' ' || e.key === 'Enter') { setOn(false); }
+            });
+        });
+    </script>
+</body>
+
+</html>
