@@ -81,6 +81,8 @@
 }
 .rocker .sym-on{ left:18%; top:12%; color: var(--sym-color); }
 .rocker .sym-off{ right:18%; bottom:12%; color: var(--sym-color); }
+/* ensure sym labels appear above decorative layers (grid, led) */
+.rocker .sym{ z-index: 3; pointer-events: none; }
 
 /* vnitřní „mřížkovaná“ textura pro červenou verzi */
 .face--grid{
@@ -127,8 +129,10 @@
   --sym-color: var(--sym-light);
 }
 .rocker--std[data-theme="black-red"] .frame{
-  background: var(--frame-black);
-  border: 1px solid #0a0d10;
+  /* make frame only a dark outline (transparent fill) so the red center shows as the main face */
+  background: transparent;
+  border: 1px solid var(--frame-black);
+  box-shadow: none;
 }
 .rocker--std[data-theme="black-red"] .rock{
   --rock-bg: linear-gradient(#6d0f0f, #350909);

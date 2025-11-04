@@ -5,43 +5,22 @@
     <meta charset="utf-8">
     <title>HW UI Kit – 7-segment, přepínače, tlačítka, LED, knoflík</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- volitelně: tvůj společný vzhled -->
     <link rel="stylesheet" href="./css/style.css">
     <link rel="stylesheet" href="./css/rocker.css">
     <link rel="stylesheet" href="./css/hw-ui-kit.css">
     <style>
-        :root {
-            --panel-bg: #1b1d20;
-            --panel-edge: #0f1114;
-            --bevel-light: rgba(255, 255, 255, .08);
-            --bevel-dark: rgba(0, 0, 0, .5);
-
-            --seg-off: #1a242a;
-            --seg-on: #ff2a2a;
-            --seg-glow: #ff2a2a55;
-
-            --switch-bg: #202429;
-            --switch-track: #0d0f12;
-            --switch-edge: #0a0c0f;
-
-            --btn-shadow: 0 6px 18px rgba(0, 0, 0, .35), inset 0 2px 0 rgba(255, 255, 255, .08), inset 0 -6px 12px rgba(0, 0, 0, .35);
-            --led-shadow: 0 0 10px currentColor, inset 0 2px 4px rgba(255, 255, 255, .2), inset 0 -3px 6px rgba(0, 0, 0, .5);
-
-            --knob-dia: 84px;
-            --knob-face: #2a2d31;
-            --knob-mark: #e9edf5;
-            --knob-ring: #121418;
-        }
-
+        
         body {
             background: #101215;
             color: #e5e7eb;
+            --card-bg: #16181b;
         }
 
         /* Day theme overrides (togglable via body.day) */
         body.day {
             background: #f7fafc;
             color: #0f172a;
+            --card-bg: #ffffff;
         }
 
         body.day .panel {
@@ -92,7 +71,8 @@
 
         h1,
         h2 {
-            margin: 0 0 10px
+            margin: 0 0 10px;
+            color: inherit; /* let headings follow body color (day/night) */
         }
 
         /* layout helpers */
@@ -187,7 +167,7 @@
             </div>
 
             <div class="card">
-                <h2>Kolébka v2</h2>
+                <h2>Kolébka WHITE</h2>
                 <div class="rocker-wrap">
                     <!-- MINI WHITE -->
                     <label class="rocker rocker--mini" data-theme="white">
@@ -195,13 +175,14 @@
                         <span class="frame"></span>
                         <span class="rock">
                             <span class="face">
-                                <span class="sym sym-on">I</span>
-                                <span class="sym sym-off">O</span>
+                                <span class="sym sym-on">1</span>
+                                <span class="sym sym-off">0</span>
                             </span>
                         </span>
                     </label>
                 </div>
 
+                <h2>Kolébka BLACK + RED</h2>
                 <!-- BLACK + RED ILLUMINATED -->
                 <label class="rocker rocker--std" data-theme="black-red">
                     <input type="checkbox" aria-label="Spínač světel" role="switch">
@@ -209,8 +190,8 @@
                     <span class="rock">
                         <span class="face face--grid"></span> <!-- „zrnitá“ textura -->
                         <span class="led"></span> <!-- vnitřní indikace -->
-                        <span class="sym sym-on">I</span>
-                        <span class="sym sym-off">O</span>
+                    <span class="sym sym-on">1</span>
+                    <span class="sym sym-off">0</span>
                     </span>
                 </label>
             </div>
@@ -366,6 +347,10 @@
 
         // theme toggle (day/night)
         const themeToggle = document.getElementById('themeToggle');
+        // Ensure the checkbox reflects the initial theme on load
+        try {
+            themeToggle.checked = document.body.classList.contains('day');
+        } catch (e) { /* ignore if element missing */ }
         themeToggle.addEventListener('change', (e) => {
             if (e.target.checked) document.body.classList.add('day'); else document.body.classList.remove('day');
         });

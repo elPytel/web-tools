@@ -27,6 +27,18 @@
             border-radius: 6px
         }
 
+        /* Place action buttons in the bottom-left of each card */
+        .card {
+            position: relative;
+            padding-bottom: 3.25rem; /* leave space for the absolute button */
+        }
+
+        .card a {
+            position: absolute;
+            left: 1rem;
+            bottom: 1rem;
+        }
+
         footer {
             margin-top: 2rem;
             color: #666;
@@ -88,6 +100,8 @@
             <p>Ukázka výpočtu hashů (MD5, SHA-1, SHA-256) a porovnání jejich rozdílů.</p>
             <a href="./hashing.html">Otevřít</a>
         </div>
+
+    </div>
 
     <footer>
         &copy; <span id="year"></span> Web Tools
