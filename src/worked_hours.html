@@ -5,33 +5,53 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Výpočet rozdílu časů</title>
+    
+    <link rel="stylesheet" href="./css/style.css">
     <style>
         body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; max-width: 720px; margin: 2rem auto; padding: 1rem; }
         label { display: block; margin: 0.5rem 0; }
-        .controls { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
-        button { padding: 0.4rem 0.6rem; }
         #result { font-weight: 600; margin-top: 1rem; }
         .small { color: #555; font-size: 0.9rem; }
+        /* Lokální přepis: na této stránce nechceme, aby byly inputy napříč celé šířky
+           (globální style nastavují input { width:100% }). Přepíšeme na auto/min-width. */
+        .app input[type="time"],
+        .app input[type="date"],
+        .app input[type="number"],
+        .app input[type="text"],
+        .app select {
+            width: auto;
+            min-width: 120px;
+            display: inline-block;
+        }
     </style>
 </head>
 
 <body>
-    <h1>Výpočet délky práce</h1>
-
-    <form id="timeForm">
-        <label>Začátek: <input type="time" id="start" required></label>
-        <label>Konec: <input type="time" id="end" required></label>
-        <div class="controls">
-            <button type="submit">Spočítej</button>
-            <button type="button" id="clear">Vyčistit</button>
-            <button type="button" id="copy" title="Kopírovat výsledek do schránky">Kopírovat</button>
+    <div class="app">
+        <div class="card">
+            <h1>Výpočet délky práce</h1>
+            <div class="muted">
+                Výpočet rozdílu časů mezi dvěma časovými údaji.
+            </div>
         </div>
-    </form>
+    
+        <div class="card">
+            <form id="timeForm">
+                <label>Začátek: <input type="time" id="start" required></label>
+                <label>Konec: <input type="time" id="end" required></label>
+                <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+                    <button type="submit">Spočítej</button>
+                    <button type="button" id="clear">Vyčistit</button>
+                    <button type="button" id="copy" title="Kopírovat výsledek do schránky">Kopírovat</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <p id="result" aria-live="polite"></p>
 
     <script type="module">
-        import { computeDiff } from './src/timecalc.js';
+    import { computeDiff } from './js/timecalc.js';
 
         // Použijeme event listenery místo inline atributu
         document.getElementById('timeForm').addEventListener('submit', (e) => {
