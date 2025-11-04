@@ -9,6 +9,8 @@
     - [Přidání do PATH](#přidání-do-path)
   - [Spouštění testů](#spouštění-testů)
     - [Pouze Vitest](#pouze-vitest)
+  - [Spuštění v prohlížeči](#spuštění-v-prohlížeči)
+    - [S podporou načítání skriptů (lokální server)](#s-podporou-načítání-skriptů-lokální-server)
 
 # Průvodce pro vývojáře
 
@@ -67,3 +69,19 @@ npm test
 ```
 
 Očekávaný výsledek: Vitest spustí testy z adresáře `tests/` a měly by projít (zelené).
+
+## Spuštění v prohlížeči
+
+Pro prohlížení nástrojů v prohlížeči otevřete `src/index.html`.
+
+> [!warning]
+> Některé funkce nemusí fungovat správně při přímém otevření souboru v prohlížeči kvůli omezením CORS a bezpečnostním politikám. Doporučuje se použít lokální HTTP server.
+
+### S podporou načítání skriptů (lokální server)
+
+Pro spuštění projektu v prohlížeči s podporou ES modulů použijte lokální HTTP server. Například:
+
+```powershell
+# Python 3
+python -m http.server 8000 --directory src
+```
