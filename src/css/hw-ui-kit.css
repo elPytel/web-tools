@@ -320,14 +320,19 @@ body.day .seg-display {
 
 /* small indicator dot placed on rim to show exact position (like audio knobs) */
 .knob .indicator {
-    position: absolute;
-    left: 50%; top: 50%;
-    width: 10px; height: 10px; border-radius: 50%;
-    background: var(--knob-mark);
-    transform-origin: center;
-    /* position dot at radius; will be moved by JS via transform rotate + translate */
-    transform: rotate(var(--angle)) translate(0, -48%);
-    box-shadow: 0 2px 6px rgba(0,0,0,.6), 0 0 6px rgba(255,255,255,.06) inset;
+        position: absolute;
+        left: 50%; top: 50%;
+        width: 10px; height: 10px; border-radius: 50%;
+        background: var(--knob-mark);
+        transform-origin: center;
+        /*
+            Place the dot on the knob rim using the knob diameter variable.
+            rotate(var(--angle)) positions it around the circle; translate moves it outward by
+            half the knob diameter (negative) plus a small inset (8px) so the dot sits nicely inside the rim.
+            This avoids percent-based translation that was relative to the dot size and caused eccentric placement.
+        */
+        transform: rotate(var(--angle)) translate(0, calc(var(--knob-dia) / -2 + 8px));
+        box-shadow: 0 2px 6px rgba(0,0,0,.6), 0 0 6px rgba(255,255,255,.06) inset;
 }
 
 /* knob360: hide indicator until user interacts to avoid visible default 'stop' */

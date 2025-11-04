@@ -333,9 +333,7 @@
         const knob360Range = document.getElementById('knob360Range');
             const setKnob360 = ang => {
                 knob360.style.setProperty('--angle', `${ang}deg`);
-                // update indicator transform; visibility controlled by .active class
-                const ind = knob360.querySelector('.indicator');
-                if (ind) ind.style.transform = `rotate(${ang}deg) translate(0, -42%)`;
+                // Indicator transform is now entirely driven by CSS (uses --angle and --knob-dia)
                 knob360.setAttribute('aria-valuenow', ang);
             };
             setKnob360(knob360Range.value);

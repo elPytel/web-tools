@@ -3,69 +3,77 @@
 <head>
   <meta charset="utf-8">
   <title>Caesarova šifra – demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="./style.css">
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      max-width: 600px;
-      margin: 50px auto;
-      text-align: center;
-    }
-    textarea {
-      width: 100%;
-      height: 100px;
-      margin-bottom: 10px;
-      font-size: 16px;
-    }
-    input[type="number"] {
-      width: 80px;
-      font-size: 16px;
-    }
-    button {
-      padding: 8px 15px;
-      margin: 5px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    .result {
-      margin-top: 20px;
-      font-weight: bold;
-      font-size: 18px;
-      white-space: pre-wrap;
-    }
+    /* Page-specific small tweaks kept local */
+    .controls { display: grid; gap: 10px }
+    textarea { height: 120px; font-size: 16px }
+    .result { margin-top: 12px; white-space: pre-wrap }
+    .center { text-align: center }
+    .small-input { width: 90px; max-width: 30vw }
   </style>
 </head>
 <body>
-  <h1>🔐 Caesarova šifra</h1>
+  <div class="app">
+    <div class="card">
+      <h1 class="center">🔐 Caesarova šifra</h1>
+      <p class="muted center">Zadej text a klíč posunu (1–25):</p>
 
-  <p>Zadej text a klíč posunu (1–25):</p>
-  <textarea id="text" placeholder="Zadej text..."></textarea><br>
-  <label>Klíč: <input type="number" id="shift" value="3" min="1" max="25"></label><br>
+      <div class="controls">
+        <textarea id="text" placeholder="Zadej text..."></textarea>
 
-  <button onclick="encrypt()">Zašifruj</button>
-  <button onclick="decrypt()">Dešifruj</button>
+        <div style="display:flex;gap:8px;align-items:center;justify-content:center">
+          <label style="display:flex;gap:8px;align-items:center">Klíč:
+            <input class="small-input" type="number" id="shift" value="3" min="1" max="25">
+          </label>
+        </div>
 
-  <div class="result" id="result"></div>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          <button id="btnEncrypt">Zašifruj</button>
+          <button id="btnDecrypt">Dešifruj</button>
+        </div>
+
+        <div class="result" id="result"></div>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
-    import { encrypt as enc, decrypt as dec } from './src/caesar.js';
+    const $ = id => document.getElementById(id);
 
-    function showEncrypted() {
-      const text = document.getElementById('text').value;
-      const shift = parseInt(document.getElementById('shift').value) || 0;
-      const encrypted = enc(text, shift);
-      document.getElementById('result').textContent = '🔒 Zašifrovaný text:\n' + encrypted;
+    async function init() {
+      try {
+        const mod = await import('./js/caesar.js');
+        const enc = mod.encrypt;
+        const dec = mod.decrypt;
+
+        function showEncrypted() {
+          const text = $('text').value;
+          const shift = parseInt($('shift').value) || 0;
+          const encrypted = enc(text, shift);
+          $('result').textContent = '🔒 Zašifrovaný text:\n' + encrypted;
+        }
+
+        function showDecrypted() {
+          const text = $('text').value;
+          const shift = parseInt($('shift').value) || 0;
+          const decrypted = dec(text, shift);
+          $('result').textContent = '🔓 Dešifrovaný text:\n' + decrypted;
+        }
+
+        // wire up buttons after the module is loaded
+        $('btnEncrypt').addEventListener('click', showEncrypted);
+        $('btnDecrypt').addEventListener('click', showDecrypted);
+      } catch (err) {
+        console.error('Failed to import ./js/caesar.js', err);
+        const r = $('result');
+        r.textContent = 'Chyba: nepodařilo se načíst modul `./js/caesar.js`.\nSpusť stránku přes lokální HTTP server (např. `npx http-server src`) aby fungovaly ES module imports.';
+        r.style.color = 'crimson';
+      }
     }
 
-    function showDecrypted() {
-      const text = document.getElementById('text').value;
-      const shift = parseInt(document.getElementById('shift').value) || 0;
-      const decrypted = dec(text, shift);
-      document.getElementById('result').textContent = '🔓 Dešifrovaný text:\n' + decrypted;
-    }
-
-    // wire up buttons
-    document.querySelector('button[onclick="encrypt()"]')?.addEventListener('click', showEncrypted);
-    document.querySelector('button[onclick="decrypt()"]')?.addEventListener('click', showDecrypted);
+    init();
   </script>
 </body>
 </html>
