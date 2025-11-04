@@ -83,6 +83,14 @@ input, textarea, select {
   gap: 12px;
 }
 
+/* Mřížka pro více karet (responsivní) */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem
+}
+
 /* Mřížka pro dvojice vstupů (responsivní) */
 .grid2 {
   display: grid;
