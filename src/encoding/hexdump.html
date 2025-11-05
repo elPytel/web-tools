@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <title>Hexdump – zobrazení hex hodnot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace }
+    .dropzone { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 12px; text-align:center; background:#f8fafc }
+    .dropzone.dragover{ background:#eef2ff; border-color:#93c5fd }
+  .controls { display:flex; gap:8px; align-items:center; flex-wrap:nowrap; overflow:auto }
+  @media (max-width:520px){ .controls { flex-wrap:wrap } }
+  .dump { margin-top:12px; border:1px solid #e6edf3; border-radius:8px; padding:10px; background:#fff; overflow:auto; white-space:pre; }
+  .dump-header { font-weight:600; border-bottom:1px solid #eef2f8; padding-bottom:6px; margin-top:6px }
+    .line { display:flex; gap:12px; align-items:flex-start; white-space:nowrap }
+    .offset { width:8ch; color:#3b4250 }
+    .hexblock { font-family: ui-monospace, monospace; color:#0b1320 }
+    .ascii { color:#1f2937; margin-left:8px }
+    .muted { color:#666; font-size:12px }
+    .btn { border:1px solid #dadada; background:#fff; padding:8px 10px; border-radius:8px; cursor:pointer }
+    .btn:hover { background:#f1f1f1 }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <h1>🧾 Hexdump</h1>
+      <div class="muted">Zobrazí hex hodnoty z nahraného souboru nebo z textového vstupu (UTF‑8). Podobné rozhraní jako Textový analyzátor.</div>
+    </div>
+
+    <div class="card">
+      <h3>Vstup</h3>
+
+      <div style="display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(220px,1fr));">
+        <div>
+          <label for="file">Nahrát soubor</label>
+          <input id="file" type="file">
+          <div class="muted">Načte binární obsah souboru a zobrazí hex dump.</div>
+        </div>
+        <div>
+          <div id="dropzone" class="dropzone">Přetáhni soubor sem</div>
+          <div class="muted">Podporováno i velké soubory – zobrazí se postupně.</div>
+        </div>
+      </div>
+
+      <textarea id="text" rows="8" placeholder="Napište nebo vložte text — bude převeden do UTF‑8…"></textarea>
+
+      <div class="controls" style="margin-top:8px">
+        <label class="muted">Bytů na řádek:
+          <select id="bytesPerLine">
+            <option value="8">8</option>
+            <option value="16" selected>16</option>
+            <option value="24">24</option>
+          </select>
+        </label>
+        <button id="fromText" class="btn">Zobrazit z textu</button>
+        <button id="copy" class="btn">Kopírovat do schránky</button>
+        <button id="downloadHex" class="btn">Stáhnout (.txt)</button>
+        <span class="muted">Offsety v hexu, ASCII zobrazení tisknutelných znaků.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Výstup</h3>
+      <div id="dumpHeader" class="dump-header mono muted" aria-hidden="true"></div>
+      <div id="dump" class="dump mono" aria-live="polite">Žádný vstup.</div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let lastBytes = null;
+
+    function toHex(n, width=2){ return n.toString(16).toUpperCase().padStart(width,'0'); }
+
+    function isPrintable(b){ return b>=0x20 && b<=0x7E; }
+
+    function renderDump(bytes, perLine=16){
+      // Render each line as: <offset>  <hex area (fixed width)>  <ascii column>
+      const out = [];
+      const groups = Math.ceil(perLine/8);
+      for (let off=0; off<bytes.length; off+=perLine){
+        const slice = bytes.slice(off, off+perLine);
+
+        // build full hexPairs with placeholders for missing bytes so column width stays constant
+        const hexPairsFull = Array.from({length: perLine}, (_,i) => {
+          if (i < slice.length) return toHex(slice[i],2);
+          return '  ';
+        });
+
+        // join into groups of 8 with double-space between groups
+        const hexGroups = [];
+        for (let g=0; g<groups; g++){
+          const start = g*8;
+          const part = hexPairsFull.slice(start, start+8).join(' ');
+          hexGroups.push(part);
+        }
+        const hexBlock = hexGroups.join('  ');
+
+        // ascii column: printable chars or '.'; use space for missing bytes to keep alignment
+        const asciiChars = Array.from({length: perLine}, (_,i) => {
+          if (i < slice.length) return isPrintable(slice[i]) ? String.fromCharCode(slice[i]) : '.';
+          return ' ';
+        }).join('');
+
+        const offset = toHex(off,8);
+        out.push(`${offset}  ${hexBlock}  ${asciiChars}`);
+      }
+      return out.join('\n');
+    }
+
+    function renderHeader(perLine=16){
+      // build a hexBlock with placeholders to compute width
+      const groups = Math.ceil(perLine/8);
+      const hexPairsFull = Array.from({length: perLine}, ()=>'00');
+      const hexGroups = [];
+      for (let g=0; g<groups; g++){
+        const start = g*8;
+        const part = hexPairsFull.slice(start, start+8).join(' ');
+        hexGroups.push(part);
+      }
+      const hexBlock = hexGroups.join('  ');
+
+      // build header with matching spacing
+      const offsetLabel = 'OFFSET'.padEnd(8,' ');
+      // two spaces after offset like in lines
+      const header = `${offsetLabel}  ${hexBlock}  ASCII`;
+      return header;
+    }
+
+    function arrayBufferToBytes(ab){ return new Uint8Array(ab); }
+
+    function updateDumpFromBytes(bytes){
+      const perLine = parseInt($('bytesPerLine').value,10) || 16;
+      const text = bytes.length ? renderDump(bytes, perLine) : 'Žádný vstup.';
+      $('dump').textContent = text;
+      // update header to match current bytes-per-line
+      $('dumpHeader').textContent = renderHeader(perLine);
+      // remember last rendered bytes so UI controls can re-render later
+      lastBytes = bytes;
+      return text;
+    }
+
+    function handleFile(file){
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const bytes = arrayBufferToBytes(e.target.result);
+        updateDumpFromBytes(bytes);
+      };
+      reader.onerror = ()=> alert('Nepodařilo se načíst soubor');
+      reader.readAsArrayBuffer(file);
+    }
+
+    $('file').addEventListener('change', e=>{ const f = e.target.files && e.target.files[0]; handleFile(f); e.target.value = ''; });
+
+    const dz = $('dropzone');
+    dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', ()=> dz.classList.remove('dragover'));
+    dz.addEventListener('drop', e=>{
+      e.preventDefault(); dz.classList.remove('dragover'); const f = e.dataTransfer.files && e.dataTransfer.files[0]; handleFile(f);
+    });
+
+    $('fromText').addEventListener('click', ()=>{
+      const txt = $('text').value || '';
+      const enc = new TextEncoder();
+      const bytes = enc.encode(txt);
+      updateDumpFromBytes(bytes);
+    });
+
+    $('bytesPerLine').addEventListener('change', ()=>{
+      const perLine = parseInt($('bytesPerLine').value,10) || 16;
+      // update header to match new layout
+      $('dumpHeader').textContent = renderHeader(perLine);
+      // re-render current dump: prefer the lastBytes (file or text), fallback to textarea
+      if (lastBytes && lastBytes.length) {
+        updateDumpFromBytes(lastBytes);
+      } else if ($('text').value) {
+        $('fromText').click();
+      }
+    });
+
+    $('copy').addEventListener('click', async ()=>{
+      try{
+        await navigator.clipboard.writeText($('dump').textContent || '');
+        alert('Zkopírováno do schránky');
+      }catch(e){ alert('Kopírování se nezdařilo'); }
+    });
+
+    $('downloadHex').addEventListener('click', ()=>{
+      const content = $('dump').textContent || '';
+      const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'hexdump.txt'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),500);
+    });
+
+    // keyboard shortcut: Ctrl+Enter to convert textarea
+    $('text').addEventListener('keydown', (e)=>{ if ((e.ctrlKey||e.metaKey) && e.key==='Enter'){ e.preventDefault(); $('fromText').click(); } });
+
+    // initialize header on load
+    (function(){
+      const perLine = parseInt($('bytesPerLine').value,10) || 16;
+      $('dumpHeader').textContent = renderHeader(perLine);
+    })();
+  </script>
+</body>
+</html>

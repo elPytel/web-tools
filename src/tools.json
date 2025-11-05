@@ -59,6 +59,14 @@
           "tags": ["ascii", "znaky"]
         },
         {
+          "id": "hexdump",
+          "name": "Hexdump",
+          "desc": "Zobrazí hex (byte) hodnoty souboru nebo textu (UTF-8).",
+          "difficulty": "🟢",
+          "path": "encoding/hexdump.html",
+          "tags": ["hex", "binary", "dump"]
+        },
+        {
           "id": "qr",
           "name": "Generátor QR kódů",
           "desc": "Z textu vygeneruje QR kód s volbou korekce chyb.",
