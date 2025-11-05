@@ -9,10 +9,69 @@
   --shadow: 0 4px 20px rgba(0,0,0,.06);
 }
 
+/* Theme variables (default = day) */
+:root{
+  --bg-app: #f7f8fa;
+  --text: #111;
+  --card-bg: #ffffff;
+  --muted: #6b7280;
+  --accent: #3b82f6;
+  --border: #e6e9ef;
+  --panel-edge: #0f1114;
+}
+
+/* Day explicit class (optional; keeps current default) */
+body.day {
+  --bg-app: #f7f8fa;
+  --text: #111;
+  --card-bg: #ffffff;
+  --muted: #6b7280;
+  --accent: #3b82f6;
+  --border: #e6e9ef;
+  --panel-edge: #0f1114;
+}
+
+/* Night overrides */
+body.night {
+  --bg-app: #0b0d10;
+  --text: #e6eef8;
+  --card-bg: #0f1318;
+  --muted: #98a0b0;
+  --accent: #ef4444;
+  --border: #111419;
+  --panel-edge: #050607;
+}
+
+/* Night: make explain/chapters more readable (lighter than page bg) */
+body.night {
+  --explain-bg: #0b2030;    /* pozadí panelu vysvětlení (o něco světlejší) */
+  --explain-border: #223543;/* ohraničení panelu */
+  --toc-bg: rgba(255,255,255,0.03);
+  --code-pre-bg: #0b1620;   /* pozadí pro pre/code v night */
+  --code-border: #17303c;
+}
+
+/* heading color for day (default) */
+:root {
+  --heading-color: #2f3031; /* tmavé nadpisy ve dne */
+}
+
+/* Night overrides */
+body.night {
+  /* světlé nadpisy v noci */
+  --heading-color: #d5dadf;
+}
+
+/* Aplikovat na všechny nadpisy */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--heading-color);
+}
+
+/* apply variables */
 body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background: var(--app-bg);
-  color: #111;
+  background: var(--bg-app);
+  color: var(--text);
   margin: 0;
   padding: 24px;
 }
@@ -23,6 +82,7 @@ body {
   padding: var(--pad);
   box-shadow: var(--shadow);
   margin-bottom: 20px;
+  border: 1px solid var(--border);
 }
 
 button {
@@ -34,14 +94,8 @@ button {
   font-size: 14px;
 }
 
-/* Don't change button color on hover — buttons should not turn blue.
-   Keep a subtle elevation instead. */
 button:hover {
   box-shadow: 0 8px 20px rgba(0,0,0,.08);
-}
-
-h1, h2, h3 {
-  color: #222;
 }
 
 input, textarea, select {
@@ -118,3 +172,63 @@ input, textarea, select {
 
 /* (Volitelné) Globálně lepší model boxů */
 *, *::before, *::after { box-sizing: border-box; }
+
+/* md renderer */
+.explain { margin-top: 16px }
+.explain-bar { display:flex; gap:16px; align-items:baseline; justify-content:space-between }
+#toc { font-size:13px; color: var(--muted); display:flex; gap:8px; flex-wrap:wrap }
+#toc a { text-decoration:none; border:1px solid var(--border); padding:4px 8px; border-radius:999px }
+#toc a:hover { background: #0f2238 }
+
+.md { line-height:1.65 }
+.md h1, .md h2, .md h3 { margin: 1em 0 .4em }
+.md p, .md ul, .md ol, .md pre, .md blockquote { margin: .5em 0 }
+.md code { background: #0c141c; padding: 2px 6px; border-radius: 6px; }
+.md pre code { display:block; padding:12px; border-radius:12px }
+.md img { max-width:100%; height:auto; border-radius:10px; border:1px solid var(--border) }
+
+/* small helper for theme controls placement */
+.theme-toggle { display:flex; gap:8px; align-items:center; font-size:14px; }
+.theme-toggle label { cursor:pointer; user-select:none; display:inline-flex; gap:6px; align-items:center; }
+
+/* Code block / inline code colors (theme-aware) */
+:root {
+  --code-bg: #f5f7fa;       /* inline code background (day) */
+  --code-text: #0b1220;     /* inline code text (day) */
+  --code-pre-bg: #f3f4f6;   /* pre/code block bg (day) */
+  --code-border: #e6e9ef;
+}
+
+/* night overrides */
+body.night {
+  --code-bg: #0c141c;
+  --code-text: #e6eef8;
+  --code-pre-bg: #6b6b6b;   /* pozadí pro pre/code v night */
+  --code-border: #17303c;
+}
+
+/* inline code */
+.md code {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--code-border);
+}
+
+/* code blocks / hljs */
+.md pre code,
+.md pre .hljs,
+.hljs {
+  background: var(--code-pre-bg) !important;
+  color: var(--code-text) !important;
+  border-radius: 12px;
+  padding: 12px !important;
+  border: 1px solid var(--code-border);
+}
+
+/* ensure code blocks inside .md keep readability even if external hljs theme is dark */
+.md pre .hljs * {
+  /* don't force all tokens to same color; only ensure base text is readable */
+  color: inherit !important;
+}
