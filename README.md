@@ -11,6 +11,7 @@
     - [Pouze Vitest](#pouze-vitest)
   - [Spuštění v prohlížeči](#spuštění-v-prohlížeči)
     - [S podporou načítání skriptů (lokální server)](#s-podporou-načítání-skriptů-lokální-server)
+  - [Jazyková podpora](#jazyková-podpora)
 
 # Průvodce pro vývojáře
 
@@ -85,3 +86,7 @@ Pro spuštění projektu v prohlížeči s podporou ES modulů použijte lokáln
 # Python 3
 python -m http.server 8000 --directory src
 ```
+
+## Jazyková podpora
+
+Více jazyků: `?lang=cs` → načti `explain.cs.md`, jinak `explain.en.md`.

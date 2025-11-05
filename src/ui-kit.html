@@ -98,12 +98,17 @@
     <div class="app panel">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <h1 style="margin:0">🔌 HW UI Kit</h1>
-            <div style="display:flex;gap:10px;align-items:center">
-                <label style="font-size:13px;color:#9aa4b2">Den / Noc</label>
-                <label style="display:flex;align-items:center;gap:8px">
-                    <input id="themeToggle" type="checkbox" aria-label="Denní režim">
-                    <span style="font-size:13px;color:#9aa4b2">Denní</span>
-                </label>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div><!-- left header placeholder --></div>
+    
+                <!-- shared theme controls -->
+                <div style="display:flex;gap:12px;align-items:center">
+                    <div class="theme-toggle" id="themeControlsUi">
+                        <label><input type="radio" name="themeUi" value="auto"> Auto</label>
+                        <label><input type="radio" name="themeUi" value="day"> Den</label>
+                        <label><input type="radio" name="themeUi" value="night"> Noc</label>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="grid">
@@ -384,6 +389,28 @@
             });
         });
     </script>
+    <script type="module">
+    import { initTheme, applyTheme, getStoredTheme } from './js/theme.js';
+    initTheme();
+
+    // sync radios
+    const stored = localStorage.getItem('site_theme_mode') || 'auto';
+    const radios = document.querySelectorAll('#themeControlsUi input[name="themeUi"]');
+    radios.forEach(r => r.checked = (r.value === stored));
+    document.getElementById('themeControlsUi').addEventListener('change', e => {
+      if (e.target && e.target.value) applyTheme(e.target.value);
+    });
+
+    // hw checkbox wiring: behaves as quick night toggle (keeps storage in sync)
+    const hwCb = document.getElementById('hwNightCheckbox');
+    const current = localStorage.getItem('site_theme_mode') || 'auto';
+    hwCb.checked = (current === 'night');
+    hwCb.addEventListener('change', () => {
+      applyTheme(hwCb.checked ? 'night' : 'day');
+    });
+
+    //<!-- filepath: e:\Git\web-tools\src\ui-kit.html -->
+  </script>
 </body>
 
 </html>

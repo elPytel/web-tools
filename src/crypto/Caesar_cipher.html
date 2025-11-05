@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <title>Caesarova šifra – demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    /* Page-specific small tweaks kept local */
+    .controls { display: grid; gap: 10px }
+    textarea { height: 120px; font-size: 16px }
+    .result { margin-top: 12px; white-space: pre-wrap }
+    .center { text-align: center }
+    .small-input { width: 90px; max-width: 30vw }
+
+    /* toggle Teorie / Nástroj */
+    .toggle-toggle { display:flex; justify-content:center; gap:12px; align-items:center; margin:8px 0 12px; }
+    .toggle-toggle input[type="checkbox"] { width:18px; height:18px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- theme controls (shared) -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+      <div class="theme-toggle" id="themeControls">
+        <label><input type="radio" name="theme" value="auto"> Auto</label>
+        <label><input type="radio" name="theme" value="day"> Den</label>
+        <label><input type="radio" name="theme" value="night"> Noc</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h1 class="center">🔐 Caesarova šifra</h1>
+      <p class="muted center">Zadej text a klíč posunu (1–25):</p>
+
+      <div class="controls">
+        <textarea id="text" placeholder="Zadej text..."></textarea>
+
+        <div style="display:flex;gap:8px;align-items:center;justify-content:center">
+          <label style="display:flex;gap:8px;align-items:center">Klíč:
+            <input class="small-input" type="number" id="shift" value="3" min="1" max="25">
+          </label>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          <button id="btnEncrypt">Zašifruj</button>
+          <button id="btnDecrypt">Dešifruj</button>
+        </div>
+
+        <div class="result" id="result"></div>
+      </div>
+    </div>
+
+    <!-- Teorie / Nástroj toggle -->
+    <div class="toggle-toggle" style="justify-content:center">
+      <label for="toggleTheory">Zobrazit teorie</label>
+      <input id="toggleTheory" type="checkbox" checked aria-checked="true">
+    </div>
+
+      <section id="explainPanel" class="card explain">
+    <div class="explain-bar">
+      <h2>📘 Vysvětlení</h2>
+      <div id="toc"></div>
+    </div>
+    <article id="doc" class="md"></article>
+  </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/lib/common.min.js"></script>
+  
+  <script type="module">
+    import { initTheme, applyTheme } from '../js/theme.js';
+    initTheme();
+
+    // sync UI & wire controls
+    const stored = localStorage.getItem('site_theme_mode') || 'auto';
+    const radios = document.querySelectorAll('#themeControls input[name="theme"]');
+    radios.forEach(r => r.checked = (r.value === stored));
+    document.getElementById('themeControls').addEventListener('change', e => {
+      if (e.target && e.target.value) applyTheme(e.target.value);
+    });
+    // keep radios synced if changed elsewhere
+    window.addEventListener('theme:changed', ev => {
+      radios.forEach(r => r.checked = (r.value === ev.detail.mode));
+    });
+    window.addEventListener('storage', ev => {
+      if (ev.key === 'site_theme_mode') {
+        radios.forEach(r => r.checked = (r.value === (ev.newValue || 'auto')));
+      }
+    });
+  </script>
+
+  <script type="module">
+    const mod = await import('../js/markdown_tools.js');
+    // Načti explain.md ze stejné složky; volitelně ?doc=abc.md
+    const mdFile = new URLSearchParams(location.search).get('doc') || 'caesar_explain.md';
+
+    const docEl = document.getElementById('doc');
+    const tocEl = document.getElementById('toc');
+
+    // Vytvoř slug pro anchor odkazy
+    const slugify = (s) => s
+      .toLowerCase()
+      .normalize('NFD').replace(/\p{M}/gu, '')
+      .replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
+
+    // Lokální souborový protokol neumí fetch() → připomeň dev server
+    if (location.protocol === 'file:') {
+      console.warn('Pro načtení explain.md spusť lokální server (např. "python -m http.server").');
+    }
+
+    // zavolej exportovanou funkci z modulu
+    await mod.loadMarkdown(mdFile, docEl, tocEl, slugify);
+  </script>
+
+  <script type="module">
+    const $ = id => document.getElementById(id);
+
+    // Toggle logic: hide/show explain panel and persist choice
+    (function setupToggle() {
+      const chk = $('toggleTheory');
+      const panel = $('explainPanel');
+      const saved = localStorage.getItem('caesar_showTheory');
+      // default: shown unless explicitly '0'
+      chk.checked = (saved === null) ? true : (saved !== '0');
+      const apply = () => {
+        panel.style.display = chk.checked ? '' : 'none';
+        localStorage.setItem('caesar_showTheory', chk.checked ? '1' : '0');
+        chk.setAttribute('aria-checked', chk.checked ? 'true' : 'false');
+      };
+      chk.addEventListener('change', apply);
+      apply();
+    })();
+
+    async function init() {
+      try {
+        const mod = await import('../js/caesar.js');
+        const enc = mod.encrypt;
+        const dec = mod.decrypt;
+
+        function showEncrypted() {
+          const text = $('text').value;
+          const shift = parseInt($('shift').value) || 0;
+          const encrypted = enc(text, shift);
+          $('result').textContent = '🔒 Zašifrovaný text:\n' + encrypted;
+        }
+
+        function showDecrypted() {
+          const text = $('text').value;
+          const shift = parseInt($('shift').value) || 0;
+          const decrypted = dec(text, shift);
+          $('result').textContent = '🔓 Dešifrovaný text:\n' + decrypted;
+        }
+
+        // wire up buttons after the module is loaded
+        $('btnEncrypt').addEventListener('click', showEncrypted);
+        $('btnDecrypt').addEventListener('click', showDecrypted);
+      } catch (err) {
+        console.error('Failed to import ./js/caesar.js', err);
+        const r = $('result');
+        r.textContent = 'Chyba: nepodařilo se načíst modul `./js/caesar.js`.\nSpusť stránku přes lokální HTTP server (např. `npx http-server src`) aby fungovaly ES module imports.';
+        r.style.color = 'crimson';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
