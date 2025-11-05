@@ -1,0 +1,103 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updated": "2025-11-05",
+    "author": "Jaroslav Körner"
+  },
+  "categories": [
+    {
+        "id": "time",
+        "name": "⏱️ Práce s časem",
+        "color": "#8b5cf6",
+        "tools": [
+            {
+            "id": "worked_hours",
+            "name": "Výpočet odpracovaných hodin",
+            "desc": "Spočítá rozdíl mezi počátečním a koncovým časem (v minutách a ve formátu h:min). Přechod přes půlnoc je podporován.",
+            "difficulty": "🟢",
+            "path": "time/worked_hours.html",
+            "tags": ["čas", "hodiny", "minuty"]
+            }
+        ]
+    },
+    {
+      "id": "crypto",
+      "name": "🔐 Kryptografie a šifry",
+      "color": "#3b82f6",
+      "tools": [
+        {
+          "id": "caesar",
+          "name": "Caesarova šifra",
+          "desc": "Jednoduché posunutí písmen o pevný počet míst.",
+          "difficulty": "🟢",
+          "path": "crypto/Caesar_cipher.html",
+          "tags": ["šifra", "posun", "základy"],
+          "hasExplain": true
+        },
+        {
+          "id": "hash",
+          "name": "Checksum / Hash demo",
+          "desc": "Spočítá hash (MD5, SHA-1, SHA-256) a ukáže rozdíl po změně znaku.",
+          "difficulty": "🟡",
+          "path": "hashing.html",
+          "tags": ["hash", "checksum"],
+          "hasExplain": true
+        }
+      ]
+    },
+    {
+      "id": "encoding",
+      "name": "🧮 Kódování a převody",
+      "color": "#10b981",
+      "tools": [
+        {
+          "id": "ascii",
+          "name": "ASCII převodník",
+          "desc": "Převádí text na ASCII kódy a zpět.",
+          "difficulty": "🟢",
+          "path": "encoding/ASCII.html",
+          "tags": ["ascii", "znaky"]
+        },
+        {
+          "id": "qr",
+          "name": "Generátor QR kódů",
+          "desc": "Z textu vygeneruje QR kód s volbou korekce chyb.",
+          "difficulty": "🟡",
+          "path": "encoding/QR_code.html",
+          "tags": ["qr", "kód", "text"]
+        }
+      ]
+    },
+    {
+      "id": "analysis",
+      "name": "🧠 Analýza textu",
+      "color": "#f59e0b",
+      "tools": [
+        {
+          "id": "analyzer",
+          "name": "Textový analyzátor",
+          "desc": "Počet slov, znaků, frekvence písmen, export CSV.",
+          "difficulty": "🟡",
+          "path": "text_analyzer.html",
+          "tags": ["text", "frekvence", "statistika"],
+          "hasExplain": true
+        }
+      ]
+    },
+    {
+      "id": "fitness",
+      "name": "💪 Fitness a zdraví",
+      "color": "#6b7280",
+      "tools": [
+        {
+          "id": "fitness",
+          "name": "Generátor tréninkového plánu",
+          "desc": "Vygeneruje tréninkový plán podle zadaných parametrů.",
+          "difficulty": "🟡",
+          "path": "body-heatmap.html",
+          "tags": ["body-heatmap", "cvičení"]
+        }
+      ]
+    }
+  ]
+}
