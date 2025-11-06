@@ -49,7 +49,7 @@
     <div class="row">
       <div class="card">
         <h3>Text → Morse</h3>
-        <textarea id="textInput" placeholder="Zadej běžný text (např. &quot;Ahoj světe!&quot;)"></textarea>
+  <textarea id="textInput" class="form-control" placeholder="Zadej běžný text (např. &quot;Ahoj světe!&quot;)"></textarea>
         <div class="controls">
           <button id="toMorseBtn">Převést na Morse</button>
           <button id="copyMorseBtn" class="pill">Kopírovat Morse</button>
@@ -62,19 +62,19 @@
           <button id="stopBtn">⏹ Zastavit</button>
           <button id="downloadBtn">⬇︎ Stáhnout WAV</button>
         </div>
-        <textarea id="morseOutput" placeholder="Zde bude Morseův kód…" readonly></textarea>
+  <textarea id="morseOutput" class="form-control" placeholder="Zde bude Morseův kód…" readonly></textarea>
         <div class="small">Konvence: písmena oddělena mezerou, slova znakem <code>/</code>.</div>
       </div>
 
       <div class="card">
         <h3>Morse → Text</h3>
-        <textarea id="morseInput" placeholder="Zadej Morse (např. &quot;.- .... --- .--- / ... ...- . - .&quot;)"></textarea>
+  <textarea id="morseInput" class="form-control" placeholder="Zadej Morse (např. &quot;.- .... --- .--- / ... ...- . - .&quot;)"></textarea>
         <div class="controls">
           <button id="toTextBtn">Převést na text</button>
           <button id="copyTextBtn" class="pill">Kopírovat text</button>
           <button id="clearMorseBtn">Vymazat</button>
         </div>
-        <textarea id="textOutput" placeholder="Zde bude dešifrovaný text…" readonly></textarea>
+  <textarea id="textOutput" class="form-control" placeholder="Zde bude dešifrovaný text…" readonly></textarea>
         <div class="small">Oddělovače: mezera mezi písmeny, <code>/</code> mezi slovy. „<code>----</code>“ se dekóduje jako <b>CH</b>.</div>
       </div>
     </div>

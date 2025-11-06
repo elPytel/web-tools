@@ -20,21 +20,14 @@
 </head>
 <body>
   <div class="app">
-    <!-- theme controls (shared) -->
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
-      <div class="theme-toggle" id="themeControls">
-        <label><input type="radio" name="theme" value="auto"> Auto</label>
-        <label><input type="radio" name="theme" value="day"> Den</label>
-        <label><input type="radio" name="theme" value="night"> Noc</label>
-      </div>
-    </div>
+  <script type="module" src="../js/site-header.js"></script>
+  <site-header title="🔐 Caesarova šifra"></site-header>
 
     <div class="card">
-      <h1 class="center">🔐 Caesarova šifra</h1>
-      <p class="muted center">Zadej text a klíč posunu (1–25):</p>
+      <p class="muted">Zadej text a klíč posunu (1–25):</p>
 
       <div class="controls">
-        <textarea id="text" placeholder="Zadej text..."></textarea>
+  <textarea id="text" class="form-control" placeholder="Zadej text..."></textarea>
 
         <div style="display:flex;gap:8px;align-items:center;justify-content:center">
           <label style="display:flex;gap:8px;align-items:center">Klíč:

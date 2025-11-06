@@ -98,8 +98,8 @@ button:hover {
   box-shadow: 0 8px 20px rgba(0,0,0,.08);
 }
 
+/* Base form field styling (do not force width globally) */
 input, textarea, select {
-  width: 100%;
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -107,6 +107,23 @@ input, textarea, select {
   font-size: 14px;
   background: #fafafa;
 }
+
+/* Utility: apply full width where intended */
+.form-control {
+  width: 100%;
+}
+
+/* Utility for inline grouped controls (keeps children inline and lets .form-control be auto-width)
+   Usage: <div class="form-inline"> <input class="form-control"> <button>…</button> </div>
+*/
+.form-inline {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.form-inline > * { margin: 0; }
+.form-inline .form-control { width: auto; min-width: 80px; }
 
 /* Kontejner stránky */
 .app {
@@ -135,6 +152,17 @@ input, textarea, select {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* When a controls container is intended to be inline (e.g. buttons side-by-side),
+   use both classes: class="controls form-inline" — this rule makes sure
+   the inline intent overrides the default vertical stacking. */
+.controls.form-inline {
+  display: inline-flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 /* Mřížka pro více karet (responsivní) */

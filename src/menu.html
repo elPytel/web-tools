@@ -36,18 +36,32 @@
 
     .toolbar { display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin-top:.25rem }
     .search { flex:1 1 320px; min-width:220px; border:1px solid var(--card-border); border-radius:10px; padding:.6rem .8rem; background:var(--card-bg) }
-    .chip { border:1px solid var(--card-border); border-radius:999px; padding:.35rem .7rem; font-size:.9rem; background:var(--card-bg); cursor:pointer; user-select:none }
-    .chip[aria-pressed="true"] { background:#1b2a40 }
-    @media (prefers-color-scheme: light){ .chip[aria-pressed="true"]{ background:#eef5ff } }
+  .chip { border:1px solid var(--card-border); border-radius:999px; padding:.35rem .7rem; font-size:.9rem; background:var(--card-bg); cursor:pointer; user-select:none }
+  .chip[aria-pressed="true"] { background:#1b2a40 }
+  /* Theme-aware chip pressed state (overrides when theme.js sets body.day/night) */
+  body.day .chip[aria-pressed="true"] { background:#eef5ff }
+  body.night .chip[aria-pressed="true"] { background:#1b2a40 }
 
-    .category { margin:1.4rem 0 2.2rem }
-    .category h2 { margin:0 0 .6rem 0 }
+  .category { margin:1.4rem 0 2.2rem }
+  .category h2 { margin:0 0 .6rem 0 }
     
-    .card { position:relative; padding:1rem 1rem 3.25rem 1rem; border:1px solid var(--card-border); border-radius:12px; background:var(--card-bg); transition: transform .08s, background .12s, border-color .12s }
+  /* Grid: keep cards equal width (2-3 per row) and don't let them stretch too wide.
+     Use auto-fill with a fixed max column width so columns don't expand to fill remaining space
+     and stay left-aligned when there are 2 columns (they won't center). */
+  .grid { display:grid; gap:1rem; grid-template-columns: repeat(auto-fill, minmax(280px, 340px)); justify-content:start }
+  .grid > article.card { width:100%; max-width:340px; justify-self:start }
+
+  /* On very small viewports, use a single column */
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: 1fr }
+    .grid > article.card { max-width: none }
+  }
+
+  .card { position:relative; padding:1rem 1rem 3.25rem 1rem; border:1px solid var(--card-border); border-radius:12px; background:var(--card-bg); transition: transform .08s, background .12s, border-color .12s }
     .card:hover { transform: translateY(-1px); background: var(--hover); }
     .card h3 { margin:.2rem 0 .25rem 0 }
     .card p { margin:0; color:var(--muted) }
-    .card .tags { margin-top:.5rem; display:flex; gap:.35rem; flex-wrap:wrap }
+  .card .tags { margin-top:.5rem; margin-bottom:1rem; display:flex; gap:.35rem; flex-wrap:wrap }
     .tag { font-size:.75rem; padding:.15rem .45rem; border-radius:999px; border:1px solid var(--card-border) }
     .open { position:absolute; left:1rem; bottom:1rem; display:inline-block; padding:.45rem .65rem; background:#0366d6; color:#fff; text-decoration:none; border-radius:6px }
     .meta { position:absolute; right:1rem; bottom:1rem; color: var(--muted); font-size:.9rem }
@@ -56,14 +70,9 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>Web Tools</h1>
-    <!-- Theme controls (day/auto/night) -->
-      <div class="theme-toggle" id="themeControls" style="margin-left:auto">
-        <label><input type="radio" name="theme" value="auto"> Auto</label>
-        <label><input type="radio" name="theme" value="day"> Den</label>
-        <label><input type="radio" name="theme" value="night"> Noc</label>
-      </div>
+  <script type="module" src="./js/site-header.js"></script>
+  <site-header title="Web Tools"></site-header>
+
     <p class="lead">Malé nástroje spustitelné v prohlížeči. Vyberte si jednu z aplikací níže.</p>
     <div class="toolbar">
       <input id="q" class="search" type="search" placeholder="Hledat (název, popis, tagy)…" aria-label="Hledat">
@@ -74,7 +83,6 @@
       <button class="chip" data-cat="crypto">🔐 Kryptografie</button>
       <button class="chip" data-cat="analysis">🧠 Analýza</button>
     </div>
-  </header>
 
   <main id="root"></main>
 

@@ -4,29 +4,21 @@
   <meta charset="utf-8">
   <title>Text ⇄ ASCII / UTF-8 převodník</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link rel="stylesheet" href="../css/style.css">
   <style>
-    :root { --pad: 14px; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-           margin: 0; padding: 24px; background: #f7f7f8; color: #111; }
-    .app { max-width: 1000px; margin: 0 auto; display: grid; gap: 16px; }
-    h1 { margin: 0 0 8px; font-size: 28px; }
-    .card { background: #fff; border-radius: 16px; padding: var(--pad);
-            box-shadow: 0 6px 20px rgba(0,0,0,.06); }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  textarea { box-sizing: border-box; width: 100%; max-width: 100%; min-height: 140px; max-height: 360px; font-size: 16px; line-height: 1.4;
-         padding: 12px; border-radius: 10px; border: 1px solid #ddd; resize: vertical; background: #fafafa; overflow: auto;
-         white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; }
-  input[type="text"] { box-sizing: border-box; max-width: 100%; padding: 8px; border-radius: 10px; border: 1px solid #ddd; background: #fafafa; }
-    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    textarea { min-height: 140px; }
     .controls > * { margin: 4px 0; }
-    .stack { display: grid; gap: 8px; }
-    button { border: 1px solid #dadada; background: #fff; padding: 8px 12px;
-             border-radius: 10px; cursor: pointer; font-size: 14px;
-             box-shadow: 0 2px 6px rgba(0,0,0,.05); }
+    .controls.equal {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      gap: 8px;
+      align-items: center;
+    }
+    @media (max-width: 900px) { .controls.equal { display: flex; flex-wrap: wrap; } }
+    
     button:hover { background: #f1f1f1; }
-    .pill { padding: 4px 10px; border-radius: 999px; font-size: 13px; background:#f0f3ff; border-color:#cfd8ff; }
     .small { font-size: 12px; color: #555; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; }
     @media (max-width: 900px) { .row { grid-template-columns: 1fr; } }
     code { background: #f3f3f3; padding: 2px 6px; border-radius: 6px; }
@@ -34,15 +26,14 @@
 </head>
 <body>
   <div class="app">
+    <script type="module" src="../js/site-header.js"></script>
+  <site-header title="Text ⇄ ASCII / UTF-8"></site-header>
     <div class="card">
-      <h1>Text ⇄ ASCII / UTF-8</h1>
       <div class="small">
         <b>Režim:</b> <code>ASCII</code> nahrazuje znaky &gt;127 za <code>?</code>. <code>UTF-8</code> převádí text na sekvenci bajtů (funguje pro češtinu i emoji).
       </div>
-    </div>
-
-    <div class="card">
-      <div class="controls">
+      <br>
+  <div class="controls equal">
         <label><b>Režim:</b>
           <select id="mode">
             <option value="ascii">ASCII (0–127)</option>
@@ -67,25 +58,25 @@
     <div class="row">
       <div class="card stack">
         <h3>Text → Kódy</h3>
-        <textarea id="textIn" placeholder="Zadej text (čeština i emoji fungují v režimu UTF-8)…"></textarea>
-        <div class="controls">
+  <textarea id="textIn" class="form-control" placeholder="Zadej text (čeština i emoji fungují v režimu UTF-8)…"></textarea>
+  <div class="controls form-inline">
           <button id="toCodes">Převést</button>
           <button id="copyCodes" class="pill">Kopírovat</button>
           <button id="clearText">Vymazat</button>
         </div>
-        <textarea id="codesOut" placeholder="Výstupní kódy…" readonly></textarea>
+  <textarea id="codesOut" class="form-control" placeholder="Výstupní kódy…" readonly></textarea>
         <div class="small" id="noteText"></div>
       </div>
 
       <div class="card stack">
         <h3>Kódy → Text</h3>
-        <textarea id="codesIn" placeholder="Zadej čísla (např. DEC: 65 66 67, HEX: 0x41 0x42, BIN: 01000001 …). Oddělovač je definovaný výše."></textarea>
-        <div class="controls">
+  <textarea id="codesIn" class="form-control" placeholder="Zadej čísla (např. DEC: 65 66 67, HEX: 0x41 0x42, BIN: 01000001 …). Oddělovač je definovaný výše."></textarea>
+  <div class="controls form-inline">
           <button id="toText">Převést</button>
           <button id="copyText" class="pill">Kopírovat</button>
           <button id="clearCodes">Vymazat</button>
         </div>
-        <textarea id="textOut" placeholder="Dekódovaný text…" readonly></textarea>
+  <textarea id="textOut" class="form-control" placeholder="Dekódovaný text…" readonly></textarea>
         <div class="small" id="noteCodes"></div>
       </div>
     </div>
