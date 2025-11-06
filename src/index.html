@@ -1,114 +1,190 @@
 <!doctype html>
 <html lang="cs">
-
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Web Tools — domov</title>
-    <link rel="stylesheet" href="./css/style.css">
-    <style>
-        body {
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-            max-width: 900px;
-            margin: 3rem auto;
-            padding: 1rem;
-        }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Web Tools — domov</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <style>
+    /* default (night) variables */
+    :root { --card-bg:#111a22; --card-border:#223142; --muted:#8aa0b2; --hover:#0f2238; }
 
-        .card h2 {
-            margin: 0 0 .25rem 0
-        }
+    /* explicit theme classes set by js/theme.js (takes precedence) */
+    body.day {
+      --card-bg:#fff;
+      --card-border:#d7e1ee;
+      --muted:#556981;
+      --hover:#eef5ff;
+    }
+    body.night {
+      --card-bg:#111a22;
+      --card-border:#223142;
+      --muted:#8aa0b2;
+      --hover:#0f2238;
+    }
 
-        .card a {
-            display: inline-block;
-            padding: .4rem .6rem;
-            background: #0366d6;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 6px
-        }
+    /* keep the prefers-color-scheme fallback for browsers without theme toggling */
+    @media (prefers-color-scheme: light){
+      :root { --card-bg:#fff; --card-border:#d7e1ee; --muted:#556981; --hover:#eef5ff; }
+    }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; max-width:1100px; margin:3rem auto; padding:1rem; }
+    /* header layout: top row with title on left and controls on right */
+    header { margin-bottom:1rem; }
+    .header-top { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+    .header-left { display:flex; flex-direction:column; }
+    .lead { color: var(--muted); }
 
-        /* Place action buttons in the bottom-left of each card */
-        .card {
-            position: relative;
-            padding-bottom: 3.25rem; /* leave space for the absolute button */
-        }
+    .toolbar { display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin-top:.25rem }
+    .search { flex:1 1 320px; min-width:220px; border:1px solid var(--card-border); border-radius:10px; padding:.6rem .8rem; background:var(--card-bg) }
+  .chip { border:1px solid var(--card-border); border-radius:999px; padding:.35rem .7rem; font-size:.9rem; background:var(--card-bg); cursor:pointer; user-select:none }
+  .chip[aria-pressed="true"] { background:#1b2a40 }
+  /* Theme-aware chip pressed state (overrides when theme.js sets body.day/night) */
+  body.day .chip[aria-pressed="true"] { background:#eef5ff }
+  body.night .chip[aria-pressed="true"] { background:#1b2a40 }
 
-        .card a {
-            position: absolute;
-            left: 1rem;
-            bottom: 1rem;
-        }
+  .category { margin:1.4rem 0 2.2rem }
+  .category h2 { margin:0 0 .6rem 0 }
+    
+  /* Grid: keep cards equal width (2-3 per row) and don't let them stretch too wide.
+     Use auto-fill with a fixed max column width so columns don't expand to fill remaining space
+     and stay left-aligned when there are 2 columns (they won't center). */
+  .grid { display:grid; gap:1rem; grid-template-columns: repeat(auto-fill, minmax(280px, 340px)); justify-content:start }
+  .grid > article.card { width:100%; max-width:340px; justify-self:start }
 
-        footer {
-            margin-top: 2rem;
-            color: #666;
-            font-size: .9rem
-        }
-    </style>
+  /* On very small viewports, use a single column */
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: 1fr }
+    .grid > article.card { max-width: none }
+  }
+
+  .card { position:relative; padding:1rem 1rem 3.25rem 1rem; border:1px solid var(--card-border); border-radius:12px; background:var(--card-bg); transition: transform .08s, background .12s, border-color .12s }
+    .card:hover { transform: translateY(-1px); background: var(--hover); }
+    .card h3 { margin:.2rem 0 .25rem 0 }
+    .card p { margin:0; color:var(--muted) }
+  .card .tags { margin-top:.5rem; margin-bottom:1rem; display:flex; gap:.35rem; flex-wrap:wrap }
+    .tag { font-size:.75rem; padding:.15rem .45rem; border-radius:999px; border:1px solid var(--card-border) }
+    .open { position:absolute; left:1rem; bottom:1rem; display:inline-block; padding:.45rem .65rem; background:#0366d6; color:#fff; text-decoration:none; border-radius:6px }
+    .meta { position:absolute; right:1rem; bottom:1rem; color: var(--muted); font-size:.9rem }
+    footer { margin-top:2rem; color:#666; font-size:.9rem }
+    .empty { color:var(--muted); padding:.8rem 0 }
+  </style>
 </head>
-
 <body>
-    <h1>Web Tools</h1>
+  <script type="module" src="./js/site-header.js"></script>
+  <site-header title="Web Tools"></site-header>
+
     <p class="lead">Malé nástroje spustitelné v prohlížeči. Vyberte si jednu z aplikací níže.</p>
-
-    <div class="grid">
-        <div class="card">
-            <h2>Výpočet délky práce</h2>
-            <p>Spočítá rozdíl mezi počátečním a koncovým časem (v minutách a ve formátu h:min). Přechod přes půlnoc je
-                podporován.</p>
-            <a href="./time/worked_hours.html">Otevřít</a>
-        </div>
-
-        <div class="card">
-            <h2>Tréninky heat-map</h2>
-            <p>Vizualizace tréninkových dat pomocí heat-map.</p>
-            <a href="./body-heatmap.html">Otevřít</a>
-        </div>
-
-        <div class="card">
-            <h2>Generování QR kódů</h2>
-            <p>Stránka pro generování QR kódů z textu nebo URL a stažení jako PNG.</p>
-            <a href="./encoding/QR_code.html">Otevřít</a>
-        </div>
-
-        <div class="card">
-            <h2>ASCII kód</h2>
-            <p>Nástroj pro převod textu do a z ASCII kódu.</p>
-            <a href="./encoding/ASCII.html">Otevřít</a>
-        </div>
-
-        <div class="card">
-            <h2>Caesarova šifra</h2>
-            <p>Jednoduchá stránka pro šifrování/dešifrování pomocí Caesarovy šifry.</p>
-            <a href="./crypto/Caesar_cipher.html">Otevřít</a>
-        </div>
-
-        <div class="card">
-            <h2>Morseův kód</h2>
-            <p>Nástroj pro šifrování/dešifrování pomocí Morseova kódu.</p>
-            <a href="./Morse_code.html">Otevřít</a>
-        </div>
-
-        <div class="card">
-            <h2>Analyzátor textu</h2>
-            <p>Nástroj pro analýzu textu a výpočet různých metrik.</p>
-            <a href="./text_analyzer.html">Otevřít</a>
-        </div>
-
-        <div class="card">
-            <h2>Hashování a kontrolní součty</h2>
-            <p>Ukázka výpočtu hashů (MD5, SHA-1, SHA-256) a porovnání jejich rozdílů.</p>
-            <a href="./hashing.html">Otevřít</a>
-        </div>
-
+    <div class="toolbar">
+      <input id="q" class="search" type="search" placeholder="Hledat (název, popis, tagy)…" aria-label="Hledat">
+      <button class="chip" data-cat="all" aria-pressed="true">Vše</button>
+      <button class="chip" data-cat="time">⏱️ Čas</button>
+      <button class="chip" data-cat="fitness">🏃‍♀️ Tréninky</button>
+      <button class="chip" data-cat="encoding">🧮 Kódování</button>
+      <button class="chip" data-cat="crypto">🔐 Kryptografie</button>
+      <button class="chip" data-cat="analysis">🧠 Analýza</button>
     </div>
 
-    <footer>
-        &copy; <span id="year"></span> Web Tools
-    </footer>
-    <script>
-        document.getElementById('year').textContent = new Date().getFullYear();
-    </script>
-</body>
+  <main id="root"></main>
 
+  <footer>&copy; <span id="year"></span> Web Tools</footer>
+
+  <script type="module">
+    const $ = (s, r=document)=>r.querySelector(s);
+    const $$ = (s, r=document)=>[...r.querySelectorAll(s)];
+    $('#year').textContent = new Date().getFullYear();
+
+    const STATE = { q:'', cat:'all', data:null };
+
+    async function load() {
+      try {
+        const res = await fetch('./tools.json', {cache:'no-store'});
+        STATE.data = await res.json();
+      } catch (e) {
+        console.error('Nelze načíst tools.json', e);
+        STATE.data = { categories: [] };
+      }
+      render();
+    }
+
+    function toolMatches(tool) {
+      const q = STATE.q.trim().toLowerCase();
+      if (!q) return true;
+      const hay = `${tool.name} ${tool.desc||''} ${(tool.tags||[]).join(' ')}`.toLowerCase();
+      return hay.includes(q);
+    }
+
+    function render() {
+      const root = $('#root');
+      root.innerHTML = '';
+
+      const cats = (STATE.data.categories||[]).filter(c => STATE.cat==='all' ? true : c.id===STATE.cat);
+
+      let any=false;
+      for (const cat of cats) {
+        const visibleTools = (cat.tools||[]).filter(toolMatches);
+        if (!visibleTools.length) continue;
+        any = true;
+
+        const sec = document.createElement('section');
+        sec.className = 'category';
+        sec.innerHTML = `<h2>${cat.name}</h2><div class="grid"></div>`;
+        const grid = $('.grid', sec);
+
+        visibleTools.forEach(t=>{
+          const el = document.createElement('article');
+          el.className = 'card';
+          el.innerHTML = `
+            <h3>${t.name} ${t.difficulty||''}</h3>
+            <p>${t.desc||''}</p>
+            ${t.tags?.length ? `<div class="tags">${t.tags.map(x=>`<span class="tag">${x}</span>`).join('')}</div>` : ''}
+            <a class="open" href="${t.path}">Otevřít</a>
+            <span class="meta">${t.hasExplain ? '📘' : ''}</span>
+          `;
+          grid.appendChild(el);
+        });
+
+        root.appendChild(sec);
+      }
+
+      if (!any) {
+        root.innerHTML = `<p class="empty">Nenalezeny žádné nástroje — změň filtr nebo hledaný výraz.</p>`;
+      }
+    }
+
+    // Události
+    $('#q').addEventListener('input', e => { STATE.q = e.target.value; render(); });
+    $$('.chip').forEach(ch => ch.addEventListener('click', ()=>{
+      $$('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));
+      ch.setAttribute('aria-pressed','true');
+      STATE.cat = ch.dataset.cat;
+      render();
+    }));
+
+    load();
+  </script>
+  <script type="module">
+    // Theme wiring: initialize theme manager and sync header radios
+    import { initTheme, applyTheme } from './js/theme.js';
+    initTheme();
+
+    const stored = localStorage.getItem('site_theme_mode') || 'auto';
+    const radios = document.querySelectorAll('#themeControls input[name="theme"]');
+    radios.forEach(r => r.checked = (r.value === stored));
+
+    document.getElementById('themeControls').addEventListener('change', e => {
+      if (e.target && e.target.value) applyTheme(e.target.value);
+    });
+
+    // keep radios synced when theme changes elsewhere
+    window.addEventListener('theme:changed', ev => {
+      const requested = ev.detail && ev.detail.requested ? ev.detail.requested : (localStorage.getItem('site_theme_mode') || 'auto');
+      radios.forEach(r => r.checked = (r.value === requested));
+    });
+    window.addEventListener('storage', ev => {
+      if (ev.key === 'site_theme_mode') {
+        radios.forEach(r => r.checked = (r.value === (ev.newValue || 'auto')));
+      }
+    });
+  </script>
+</body>
 </html>
