@@ -1,6 +1,6 @@
 # web-tools
 
-![index](./src/assets/WebTools.png)
+![index](./src/assets/WebTools_v2.png)
 
 - [web-tools](#web-tools)
 - [Průvodce pro vývojáře](#průvodce-pro-vývojáře)
@@ -11,6 +11,7 @@
     - [Pouze Vitest](#pouze-vitest)
   - [Spuštění v prohlížeči](#spuštění-v-prohlížeči)
     - [S podporou načítání skriptů (lokální server)](#s-podporou-načítání-skriptů-lokální-server)
+    - [Otevírání v IDE](#otevírání-v-ide)
   - [Jazyková podpora](#jazyková-podpora)
 
 # Průvodce pro vývojáře
@@ -86,6 +87,10 @@ Pro spuštění projektu v prohlížeči s podporou ES modulů použijte lokáln
 # Python 3
 python -m http.server 8000 --directory src
 ```
+
+### Otevírání v IDE
+
+VS Code rozšíření "Live Server" od Microsoftu umožňuje spustit lokální server přímo z editoru. Po instalaci rozšíření klikněte pravým tlačítkem na `src/index.html` a vyberte "Open with Live Server".
 
 ## Jazyková podpora
 

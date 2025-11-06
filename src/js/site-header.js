@@ -24,6 +24,27 @@ class SiteHeader extends HTMLElement {
     // initialize theme system (idempotent)
     try { initTheme(); } catch(e){ /* ignore */ }
 
+    // Ensure a favicon is present for pages that include the shared header.
+    // If the page already declares a favicon, don't override it.
+    try {
+      const hasIcon = !!document.querySelector('link[rel~="icon"], link[rel~="shortcut icon"], link[rel~="apple-touch-icon"]');
+      if (!hasIcon) {
+        // Prefer the prepared PNG/ICO assets at the site root if available.
+        // These are the common set produced by many favicon generators.
+        const links = [
+          { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+          { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
+          { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' },
+          { rel: 'shortcut icon', href: '/favicon.ico' }
+        ];
+        for (const attrs of links) {
+          const l = document.createElement('link');
+          for (const [k, v] of Object.entries(attrs)) l.setAttribute(k, v);
+          document.head.appendChild(l);
+        }
+      }
+    } catch (e) { /* ignore if document.head not available */ }
+
   // set title (attribute 'title' on <site-header> or fallback to document.title before '—')
   const titleAttr = this.getAttribute('title');
   let titleText = titleAttr ? titleAttr : (document.title || '');
