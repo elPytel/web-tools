@@ -76,12 +76,7 @@
     <p class="lead">Malé nástroje spustitelné v prohlížeči. Vyberte si jednu z aplikací níže.</p>
     <div class="toolbar">
       <input id="q" class="search" type="search" placeholder="Hledat (název, popis, tagy)…" aria-label="Hledat">
-      <button class="chip" data-cat="all" aria-pressed="true">Vše</button>
-      <button class="chip" data-cat="time">⏱️ Čas</button>
-      <button class="chip" data-cat="fitness">🏃‍♀️ Tréninky</button>
-      <button class="chip" data-cat="encoding">🧮 Kódování</button>
-      <button class="chip" data-cat="crypto">🔐 Kryptografie</button>
-      <button class="chip" data-cat="analysis">🧠 Analýza</button>
+      <div id="chips" class="chips" aria-label="Kategorie"><!-- generated category chips will go here --></div>
     </div>
 
   <main id="root"></main>
@@ -153,14 +148,43 @@
 
     // Události
     $('#q').addEventListener('input', e => { STATE.q = e.target.value; render(); });
-    $$('.chip').forEach(ch => ch.addEventListener('click', ()=>{
-      $$('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));
-      ch.setAttribute('aria-pressed','true');
-      STATE.cat = ch.dataset.cat;
-      render();
-    }));
 
-    load();
+    // Chips: generate from STATE.data and use event delegation for clicks
+    function generateChips() {
+      const container = document.getElementById('chips');
+      if (!container) return;
+      container.innerHTML = '';
+      // add "all" button
+      const allBtn = document.createElement('button');
+      allBtn.className = 'chip'; allBtn.dataset.cat = 'all'; allBtn.setAttribute('aria-pressed','true');
+      allBtn.type = 'button'; allBtn.textContent = 'Vše';
+      container.appendChild(allBtn);
+
+      const cats = (STATE.data && STATE.data.categories) ? STATE.data.categories : [];
+      for (const cat of cats) {
+        const btn = document.createElement('button');
+        btn.className = 'chip'; btn.type = 'button'; btn.dataset.cat = cat.id;
+        btn.textContent = (cat.chip || cat.name || cat.id);
+        btn.setAttribute('aria-pressed','false');
+        container.appendChild(btn);
+      }
+    }
+
+    // Delegate clicks on chips
+    const chipsContainer = document.getElementById('chips');
+    if (chipsContainer) {
+      chipsContainer.addEventListener('click', e => {
+        const ch = e.target.closest('.chip');
+        if (!ch) return;
+        chipsContainer.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));
+        ch.setAttribute('aria-pressed','true');
+        STATE.cat = ch.dataset.cat;
+        render();
+      });
+    }
+
+    // load data and then generate chips + render
+    load().then(()=>{ generateChips(); render(); });
   </script>
   <script type="module">
     // Theme wiring: initialize theme manager and sync header radios

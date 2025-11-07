@@ -6,23 +6,33 @@
   },
   "categories": [
     {
-        "id": "time",
-        "name": "⏱️ Práce s časem",
-        "color": "#8b5cf6",
-        "tools": [
-            {
-            "id": "worked_hours",
-            "name": "Výpočet odpracovaných hodin",
-            "desc": "Spočítá rozdíl mezi počátečním a koncovým časem (v minutách a ve formátu h:min). Přechod přes půlnoc je podporován.",
-            "difficulty": "🟢",
-            "path": "time/worked_hours.html",
-            "tags": ["čas", "hodiny", "minuty"]
-            }
-        ]
+      "id": "time",
+      "name": "⏱️ Práce s časem",
+      "chip": "⏱️ Čas",
+      "color": "#8b5cf6",
+      "tools": [
+        {
+          "id": "clock",
+          "name": "Analogové a digitální hodiny",
+          "desc": "Zobrazuje aktuální čas jako analogové a digitální hodiny. Možnost přepínání mezi 12/24 hodinovým formátem.",
+          "difficulty": "🟢",
+          "path": "time/clock.html",
+          "tags": ["čas", "hodiny", "analogové", "digitální"]
+        },
+        {
+        "id": "worked_hours",
+        "name": "Výpočet odpracovaných hodin",
+        "desc": "Spočítá rozdíl mezi počátečním a koncovým časem (v minutách a ve formátu h:min). Přechod přes půlnoc je podporován.",
+        "difficulty": "🟢",
+        "path": "time/worked_hours.html",
+        "tags": ["čas", "hodiny", "minuty"]
+        }
+      ]
     },
     {
       "id": "crypto",
       "name": "🔐 Kryptografie a šifry",
+      "chip": "🔐 Kryptografie",
       "color": "#3b82f6",
       "tools": [
         {
@@ -35,11 +45,19 @@
           "hasExplain": true
         },
         {
+          "id": "Morse",
+          "name": "Morseova abeceda",
+          "desc": "Převod textu na Morseovu abecedu a syntéza zvuku.",
+          "difficulty": "🟢",
+          "path": "crypto/Morse_code.html",
+          "tags": ["šifra", "morse", "zvuk"]
+        },
+        {
           "id": "hash",
           "name": "Checksum / Hash demo",
           "desc": "Spočítá hash (MD5, SHA-1, SHA-256) a ukáže rozdíl po změně znaku.",
           "difficulty": "🟡",
-          "path": "hashing.html",
+          "path": "crypto/hashing.html",
           "tags": ["hash", "checksum"]
         }
       ]
@@ -47,6 +65,7 @@
     {
       "id": "encoding",
       "name": "🧮 Kódování a převody",
+      "chip": "🧮 Kódování",
       "color": "#10b981",
       "tools": [
         {
@@ -78,6 +97,7 @@
     {
       "id": "analysis",
       "name": "🧠 Analýza textu",
+      "chip": "🧠 Analýza",
       "color": "#f59e0b",
       "tools": [
         {
@@ -93,6 +113,7 @@
     {
       "id": "signals",
       "name": "📶 Signály",
+      "chip": "📶 Signály",
       "color": "#06b6d4",
       "tools": [
         {
@@ -109,6 +130,7 @@
     {
       "id": "fitness",
       "name": "💪 Fitness a zdraví",
+      "chip": "🏃‍♀️ Tréninky",
       "color": "#6b7280",
       "tools": [
         {

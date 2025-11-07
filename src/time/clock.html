@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>🕒 Hodiny – digitální / ručičkové / 7-segment</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/hw-ui-kit.css">
+<style>
+  /* ===== Layout & UI ===== */
+  .app { max-width: 980px; margin: 24px auto; padding: 12px; }
+  .bar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .bar .spacer { flex:1 }
+  .view { display:none }
+  .view.active { display:block }
+  .tabs button[aria-pressed="true"] { outline: 2px solid #3b82f6; }
+
+  /* ===== Digitální (běžný text) ===== */
+  .big { font-size: clamp(32px, 8vw, 96px); letter-spacing: 0.02em; text-align:center; }
+  .date { text-align:center; opacity:.75; margin-top: 6px }
+
+  /* ===== Ručičkové (canvas kulaté) ===== */
+  .analog-wrap { display:grid; place-items:center; padding: 8px; }
+  canvas#analog { width: min(90vw, 460px); height: min(90vw, 460px); max-width: 460px; max-height: 460px; }
+
+  .seg-display {
+    justify-content:center;
+  }
+
+  /* dvojtečka mezi HH:MM:SS */
+  .colon { width: 16px; position: relative; }
+  .colon::before, .colon::after {
+    content: ""; position: absolute; left: 3px; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--seg-off);
+  }
+  .colon.on::before { background: var(--seg-on); box-shadow: 0 0 10px var(--seg-glow); }
+  .colon.on::after  { background: var(--seg-on); box-shadow: 0 0 10px var(--seg-glow); }
+  .colon::before { top: 22px; } .colon::after { bottom: 22px; }
+
+  /* drobné utility */
+  .muted { opacity:.7 }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+  .right { margin-left:auto }
+  label { display:flex; gap:6px; align-items:center }
+  input[type="checkbox"]{ transform: scale(1.1) }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <script type="module" src="../js/site-header.js"></script>
+      <site-header title="🕒 Aktuální čas"></site-header>
+    </div>
+    <div class="card">
+      <div class="bar">
+        <div class="spacer"></div>
+        <div class="row">
+          <label><input id="toggleSeconds" type="checkbox" checked> Sekundy</label>
+          <label><input id="toggle24h" type="checkbox" checked> 24h</label>
+          <label><input id="toggleBlink" type="checkbox" checked> Blikající :</label>
+        </div>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Režim zobrazení">
+        <button class="tab" data-view="digital" aria-pressed="true">Digitální</button>
+        <button class="tab" data-view="analog">Ručičkové</button>
+        <button class="tab" data-view="seg7">7-segment</button>
+      </div>
+    </div>
+
+    <!-- Digitální -->
+    <section id="view-digital" class="card view active" role="tabpanel" aria-label="Digitální">
+      <div class="big" id="textClock">00:00:00</div>
+      <div class="date" id="dateText"></div>
+    </section>
+
+    <!-- Analog -->
+    <section id="view-analog" class="card view" role="tabpanel" aria-label="Ručičkové">
+      <div class="analog-wrap">
+        <canvas id="analog" width="460" height="460"></canvas>
+      </div>
+    </section>
+
+    <!-- 7-segment -->
+    <section id="view-seg7" class="card view" role="tabpanel" aria-label="7-segment">
+      <div class="seg-display" id="segClock"></div>
+      <div class="date" id="dateTextSeg"></div>
+    </section>
+  </div>
+
+<script type="module">
+  import { createSevenSeg } from '../js/sevenseg.js';
+  // ===== Helpers =====
+  const $ = (s, r=document)=>r.querySelector(s);
+  const pad2 = n => n.toString().padStart(2,'0');
+
+  // ===== State & options =====
+  const opts = {
+    showSeconds: true,
+    use24h: true,
+    blinkColon: true
+  };
+
+  // Restore from localStorage
+  opts.showSeconds = localStorage.getItem('clock_showSeconds') !== '0';
+  opts.use24h     = localStorage.getItem('clock_use24h')     !== '0';
+  opts.blinkColon = localStorage.getItem('clock_blinkColon') !== '0';
+  $('#toggleSeconds').checked = opts.showSeconds;
+  $('#toggle24h').checked     = opts.use24h;
+  $('#toggleBlink').checked   = opts.blinkColon;
+
+  // ===== Tabs (views) =====
+  const views = ['digital','analog','seg7'];
+  const showView = (v) => {
+    views.forEach(id=>{
+      $('#view-'+id).classList.toggle('active', id===v);
+      $(`.tab[data-view="${id}"]`).setAttribute('aria-pressed', id===v ? 'true' : 'false');
+    });
+    localStorage.setItem('clock_view', v);
+    // If switching to analog view, ensure the canvas is sized and drawn immediately.
+    if (v === 'analog') {
+      // Resize backing store (ResizeObserver will also do this when visible)
+      try { resizeAnalog(); } catch(e) { /* ignore if resizeAnalog not ready */ }
+      try { drawAnalog(new Date()); } catch(e) { console.warn('drawAnalog failed on view switch', e); }
+    }
+  };
+  const savedView = localStorage.getItem('clock_view');
+  if (views.includes(savedView)) showView(savedView);
+  document.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('click', ()=> showView(btn.dataset.view));
+  });
+
+  // ===== Date formatting (Czech locale) =====
+  function formatDate(d){
+    return d.toLocaleDateString('cs-CZ', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  }
+
+  // ===== Digital text clock =====
+  const textClock = $('#textClock');
+  const dateText  = $('#dateText');
+  function formatTime(d){
+    let h = d.getHours();
+    const m = d.getMinutes();
+    const s = d.getSeconds();
+    let suffix = '';
+    if (!opts.use24h) {
+      suffix = h>=12 ? ' PM' : ' AM';
+      h = (h%12)||12;
+    }
+    const base = `${pad2(h)}:${pad2(m)}${opts.showSeconds?':'+pad2(s):''}${suffix}`;
+    if (!opts.blinkColon) return base;
+    // blink : each second for both digital and 7seg visual
+    const colon = (d.getMilliseconds()<500) ? ':' : ' ';
+    return opts.showSeconds
+      ? `${pad2(h)}${colon}${pad2(m)}${colon}${pad2(s)}${suffix}`
+      : `${pad2(h)}${colon}${pad2(m)}${suffix}`;
+  }
+
+  // ===== Analog clock (canvas) =====
+  const analog = $('#analog');
+  const ag = analog.getContext('2d');
+  function drawAnalog(d){
+    const w = analog.width, h = analog.height;
+    const cx = w/2, cy = h/2, R = Math.min(cx, cy) - 12;
+    ag.clearRect(0,0,w,h);
+
+    // face
+    ag.fillStyle = getComputedStyle(document.body).getPropertyValue('--panel-bg') || '#0d1115';
+    ag.strokeStyle = '#223142';
+    ag.lineWidth = 8;
+    ag.beginPath(); ag.arc(cx, cy, R, 0, Math.PI*2); ag.fill(); ag.stroke();
+
+    // ticks
+    ag.save();
+    ag.translate(cx, cy);
+    for (let i=0;i<60;i++){
+      const a = i * Math.PI/30;
+      const r1 = R-12, r2 = i%5===0 ? R-32 : R-22;
+      ag.lineWidth = i%5===0 ? 4 : 2;
+      ag.strokeStyle = i%5===0 ? '#cfe1ff' : '#6b7f95';
+      ag.beginPath();
+      ag.moveTo(r2*Math.cos(a), r2*Math.sin(a));
+      ag.lineTo(r1*Math.cos(a), r1*Math.sin(a));
+      ag.stroke();
+    }
+    ag.restore();
+
+    // hands
+    const ms = d.getMilliseconds();
+    const sec = d.getSeconds() + ms/1000;
+    const min = d.getMinutes() + sec/60;
+    const hr  = (d.getHours()%12) + min/60;
+
+    // hour hand
+    drawHand(hr * 30 * Math.PI/180, R*0.5, 7, '#e7eef6');
+    // minute hand
+    drawHand(min * 6 * Math.PI/180, R*0.72, 5, '#9fb4cb');
+    // second hand (show only if enabled seconds)
+    if (opts.showSeconds) drawHand(sec * 6 * Math.PI/180, R*0.78, 2, '#f43f5e');
+
+    // center cap
+    ag.fillStyle = '#e7eef6';
+    ag.beginPath(); ag.arc(cx, cy, 6, 0, Math.PI*2); ag.fill();
+
+    function drawHand(angle, length, width, color){
+      ag.save();
+      ag.translate(cx, cy);
+      ag.rotate(angle - Math.PI/2);
+      ag.strokeStyle = color;
+      ag.lineWidth = width;
+      ag.lineCap = 'round';
+      ag.beginPath(); ag.moveTo(-length*0.12, 0); ag.lineTo(length, 0); ag.stroke();
+      ag.restore();
+    }
+  }
+
+  // ===== 7-segment clock =====
+  const segRoot = $('#segClock');
+  // build HH : MM : SS
+  function makeDigit(){
+    const d = document.createElement('div');
+    d.className = 'digit';
+    ['a','b','c','d','e','f','g'].forEach(s=>{
+      const el = document.createElement('div'); el.className = `seg ${s}`; d.appendChild(el);
+    });
+    const dp = document.createElement('div'); dp.className = 'dp'; d.appendChild(dp);
+    return d;
+  }
+  function makeColon(){ const c = document.createElement('div'); c.className='colon'; return c; }
+  const digits = [];
+  function buildSegLayout(){
+    segRoot.innerHTML = '';
+    const order = opts.showSeconds ? ['H1','H2',':','M1','M2',':','S1','S2'] : ['H1','H2',':','M1','M2'];
+    order.forEach(tok=>{
+      if (tok === ':') segRoot.appendChild(makeColon());
+      else { const d = makeDigit(); digits.push(d); segRoot.appendChild(d); }
+    });
+  }
+  // create the DOM layout and wire the reusable 7-seg helper
+  let segDisplay = null;
+
+  // initial layout
+  buildSegLayout();
+  try { segDisplay = createSevenSeg(segRoot); } catch(e) { console.warn('sevenseg init failed', e); }
+
+  // ===== Update loop =====
+  function tick(){
+    const now = new Date();
+    try {
+      // digital text
+      textClock.textContent = formatTime(now);
+      dateText.textContent  = formatDate(now);
+
+      // analog
+      if ($('#view-analog')?.classList.contains('active')) drawAnalog(now);
+
+      // 7seg
+      if ($('#view-seg7')?.classList.contains('active')){
+        const h = now.getHours();
+        const m = now.getMinutes();
+        const s = now.getSeconds();
+        const parts = opts.use24h ? [pad2(h), pad2(m), pad2(s)] :
+                      [pad2((h%12)||12), pad2(m), pad2(s)];
+
+          const str = opts.showSeconds ? parts.join('') : (parts[0] + parts[1]);
+          // delegate rendering to the shared sevenseg module
+          if (segDisplay && typeof segDisplay.setValue === 'function') {
+            segDisplay.setValue(str);
+          } else {
+            // fallback: naive per-digit update (keep previous behavior)
+            for (let i=0;i<digits.length;i++){
+              const ch = str[i] ?? '0';
+              // update segment classes directly (best-effort)
+              digits[i].querySelectorAll('.seg').forEach(segEl=> segEl.classList.toggle('on', false));
+              // try to use DEFAULT_MAP if available
+              try {
+                // lazy import of DEFAULT_MAP not necessary here; skip fallback mapping
+              } catch(_){}
+            }
+          }
+        // dvojtečky blikání
+        document.querySelectorAll('.colon').forEach(col=>{
+          col.classList.toggle('on', !opts.blinkColon || (now.getMilliseconds()<500));
+        });
+        $('#dateTextSeg').textContent = formatDate(now);
+      }
+    } catch (err) {
+      // Ensure a single exception doesn't stop the animation loop entirely
+      console.error('Clock tick error:', err);
+    } finally {
+      requestAnimationFrame(tick);
+    }
+  }
+
+  // start the loop
+  requestAnimationFrame(tick);
+
+  // ===== Options UI =====
+  $('#toggleSeconds').addEventListener('change', (e)=>{
+    opts.showSeconds = e.target.checked;
+    localStorage.setItem('clock_showSeconds', opts.showSeconds?'1':'0');
+    digits.length = 0; // reset store
+    buildSegLayout();
+    try { segDisplay = createSevenSeg(segRoot); } catch(e) { console.warn('sevenseg init failed after rebuild', e); }
+  });
+  $('#toggle24h').addEventListener('change', (e)=>{
+    opts.use24h = e.target.checked;
+    localStorage.setItem('clock_use24h', opts.use24h?'1':'0');
+  });
+  $('#toggleBlink').addEventListener('change', (e)=>{
+    opts.blinkColon = e.target.checked;
+    localStorage.setItem('clock_blinkColon', opts.blinkColon?'1':'0');
+  });
+
+  // Resize canvas backing store to device pixels
+  const resizeAnalog = ()=>{
+    const dpr = Math.max(1, window.devicePixelRatio||1);
+    const box = analog.getBoundingClientRect();
+    analog.width = Math.round(box.width * dpr);
+    analog.height = Math.round(box.height * dpr);
+  };
+  if (window.ResizeObserver) {
+    new ResizeObserver(resizeAnalog).observe(analog);
+  } else {
+    // Fallback for older browsers
+    window.addEventListener('resize', resizeAnalog);
+  }
+  // perform initial sizing
+  resizeAnalog();
+</script>
+</body>
+</html>
