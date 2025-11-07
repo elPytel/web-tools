@@ -8,7 +8,8 @@ const state = {
   freq: 440,
   gain: 0.1,
   additive: [],      // [{n, amp}]
-  periodic: null
+  periodic: null,
+  fftSize: 2048
 };
 
 function ensureCtx() {
@@ -26,11 +27,11 @@ function ensureCtx() {
     setRect(state.rect);
 
     analyser = ctx.createAnalyser();     // FFT
-    analyser.fftSize = 2048;             // 1024 bins
+  analyser.fftSize = state.fftSize;    // fft bins = fftSize/2
     analyser.smoothingTimeConstant = 0.6;
 
     analyserTD = ctx.createAnalyser();   // time-domain
-    analyserTD.fftSize = 2048;
+  analyserTD.fftSize = state.fftSize;
 
     // routing (osc → shaper → gain → comp → destination)
     // osc se připojí/odpojí dynamicky
@@ -74,6 +75,20 @@ export function setWave(w) {
   ensureCtx();
   rebuildOsc();
 }
+
+/**
+ * Set FFT size for analyser nodes. Must be a power of two (32..32768).
+ * Accepts common values like 512, 1024, 2048, 4096.
+ */
+export function setFFTSize(n) {
+  const v = Number(n) | 0;
+  const allowed = new Set([32,64,128,256,512,1024,2048,4096,8192,16384,32768]);
+  if (!allowed.has(v)) return;
+  state.fftSize = v;
+  if (!ctx) return;
+  if (analyser) analyser.fftSize = v;
+  if (analyserTD) analyserTD.fftSize = v;
+}
 export function setRect(mode) {
   state.rect = mode;
   if (!shaper) ensureCtx();
@@ -102,10 +117,16 @@ export function setFreq(f) {
     // krátký fade, aby neklapl
     const now = ctx.currentTime;
     const g = gain.gain;
-    const v = g.value;
-    g.setTargetAtTime(v*0.2, now, 0.01); // jemný útlum
+    // Use the desired steady-state gain (state.gain) instead of reading g.value
+    // Reading g.value while there are scheduled ramps can return an intermediate
+    // value; if setFreq is called repeatedly this caused multiplicative
+    // attenuation. Cancel pending scheduled values and schedule a short dip
+    // to avoid clicks, then restore the steady-state gain.
+    g.cancelScheduledValues(now);
+    const target = state.gain || 0;
+    g.setTargetAtTime(target * 0.2, now, 0.01); // jemný útlum
     osc.frequency.setTargetAtTime(state.freq, now, 0.01);
-    g.setTargetAtTime(v, now + 0.02, 0.02);
+    g.setTargetAtTime(target, now + 0.02, 0.02);
   } catch {}
 }
 export function setGain(v) {
@@ -137,7 +158,7 @@ export function stop() {
   if (!ctx) return;
   // fade out a stop
   gain.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
-  if (osc) { try { osc.stop(ctx.currentTime + 0.05); } catch{}; }
+  if (osc) { try { osc.stop(ctx.currentTime + 0.05); } catch{}; osc.disconnect(); osc = null; }
   running = false;
 }
 

@@ -86,12 +86,20 @@
         <!-- PRAVÝ SLOUPEC – VIZUALIZACE -->
         <section>
           <div class="row" style="justify-content:space-between">
-            <div class="row">
-              <label><input type="checkbox" id="showOsc" checked /> Osciloskop</label>
-              <label><input type="checkbox" id="showFFT" checked /> Spektrum</label>
-            </div>
-            <div class="small">Vzorkování vizualizace: 60 FPS</div>
-          </div>
+                  <div class="row">
+                    <label><input type="checkbox" id="showOsc" checked /> Osciloskop</label>
+                    <label><input type="checkbox" id="showFFT" checked /> Spektrum</label>
+                    <label>FFT rozlišení:
+                      <select id="fftSize">
+                        <option value="512">512</option>
+                        <option value="1024">1024</option>
+                        <option value="2048" selected>2048</option>
+                        <option value="4096">4096</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="small">Vzorkování vizualizace: 60 FPS</div>
+                </div>
           <canvas id="osc"></canvas>
           <div style="height:8px"></div>
           <canvas id="fft"></canvas>
@@ -122,7 +130,7 @@
   <script type="module">
     import { initTheme, applyTheme } from '../js/theme.js';
     import * as MD from '../js/markdown_tools.js';
-    import { start, stop, setWave, setRect, setFreq, setGain, setAdditive, initViz, getState } from '../js/signals.js';
+  import { start, stop, setWave, setRect, setFreq, setGain, setAdditive, initViz, getState, setFFTSize } from '../js/signals.js';
     import * as P from './presets.js';
 
     // Téma
@@ -205,6 +213,17 @@
 
     // Vizualizace
     initViz({ osc: $('osc'), fft: $('fft'), showOsc: $('showOsc'), showFFT: $('showFFT') });
+
+    // FFT size selector wiring
+    (function(){
+      const sel = $('fftSize');
+      if (!sel) return;
+      // initialize with current state
+      try { const s = getState(); if (s && s.fftSize) sel.value = String(s.fftSize); } catch(e){}
+      sel.addEventListener('change', e=> setFFTSize(parseInt(e.target.value,10)));
+      // apply initial selection
+      setFFTSize(parseInt(sel.value,10));
+    })();
 
     // Bezpečnostní poznámka
     console.log('Tip: Začni na nízké hlasitosti. Limiter je aktivní, ale i tak opatrně se sluchátky.');
