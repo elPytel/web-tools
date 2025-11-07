@@ -260,3 +260,19 @@ body.night {
   /* don't force all tokens to same color; only ensure base text is readable */
   color: inherit !important;
 }
+
+/* Admonitions / callouts used in documentation markdown (e.g. > [!warning]) */
+.admonition {
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 14px 0;
+    display: block;
+}
+.admonition .admonition-title { font-weight: 600; margin-bottom: 6px; }
+.admonition p { margin: 0; }
+.admonition-info { border-left: 4px solid #2563eb; background: #eff6ff; }
+.admonition-note { border-left: 4px solid #0ea5a4; background: #ecfeff; }
+.admonition-tip { border-left: 4px solid #16a34a; background: #ecfdf5; }
+.admonition-warning { border-left: 4px solid #f59e0b; background: #fff7ed; }
+.admonition-danger { border-left: 4px solid #dc2626; background: #fff1f2; }
+.admonition-caution { border-left: 4px solid #d97706; background: #fffbeb; }
