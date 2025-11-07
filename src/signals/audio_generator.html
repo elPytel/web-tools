@@ -61,11 +61,8 @@
           <!-- Additivní harmonické -->
           <details id="additiveBox">
             <summary>Harmonické (additivní) &nbsp; <span class="small">(n:amp)</span></summary>
-            <div class="row" style="margin-top:6px">
-              <button id="presetFlute" class="pill">Flute</button>
-              <button id="presetClarinet" class="pill">Clarinet</button>
-              <button id="presetViolin" class="pill">Violin</button>
-              <button id="presetClear" class="pill">Clear</button>
+            <div id="presetButtons" class="row" style="margin-top:6px">
+              <!-- Preset buttons are generated dynamically from presets.json -->
             </div>
             <div class="row">
               <label>Seznam:
@@ -131,7 +128,14 @@
     import { initTheme, applyTheme } from '../js/theme.js';
     import * as MD from '../js/markdown_tools.js';
   import { start, stop, setWave, setRect, setFreq, setGain, setAdditive, initViz, getState, setFFTSize } from '../js/signals.js';
-    import * as P from './presets.js';
+    // Load presets from JSON (top-level await in module script)
+    let P = {};
+    try {
+      P = await (await fetch('./presets.json')).json();
+    } catch (e) {
+      console.warn('Could not load presets.json', e);
+      P = {};
+    }
 
     // Téma
     initTheme();
@@ -198,10 +202,29 @@
       $('harmList').value = arr.map(h => `${h.n}:${h.amp}`).join(', ');
       setAdditive(arr);
     };
-    $('presetFlute').addEventListener('click', ()=> applyHarm(P.Flute));
-    $('presetClarinet').addEventListener('click', ()=> applyHarm(P.Clarinet));
-    $('presetViolin').addEventListener('click', ()=> applyHarm(P.Violin));
-    $('presetClear').addEventListener('click', ()=> applyHarm([]));
+    // Generate preset buttons dynamically from loaded presets (P)
+    (function(){
+      const container = $('presetButtons');
+      if (!container) return;
+      // create a button for each named preset in P
+      Object.keys(P || {}).forEach(name => {
+        const arr = P[name];
+        if (!Array.isArray(arr)) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pill';
+        btn.textContent = name;
+        btn.addEventListener('click', () => applyHarm(arr));
+        container.appendChild(btn);
+      });
+      // Always add a Clear button
+      const clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.className = 'pill';
+      clearBtn.textContent = 'Clear';
+      clearBtn.addEventListener('click', () => applyHarm([]));
+      container.appendChild(clearBtn);
+    })();
     $('harmList').addEventListener('change', ()=>{
       const txt = $('harmList').value.trim();
       const arr = txt ? txt.split(',').map(s=>s.trim()).map(pair=>{
