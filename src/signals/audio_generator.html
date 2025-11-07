@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <title>📶 Generátor signálů</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .controls { display:grid; gap:10px }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center }
+    .grid { display:grid; gap:12px; grid-template-columns: 1fr 1fr }
+    @media (max-width: 980px){ .grid{ grid-template-columns:1fr } }
+    .range-line { display:grid; gap:6px }
+    .small { font-size:.9rem; opacity:.8 }
+    canvas { width:100%; height:220px; background:var(--panel-bg, #0c141b); border:1px solid var(--border, #223142); border-radius:12px }
+    .toggle { display:flex; gap:8px; align-items:center; justify-content:center; margin:8px 0 12px }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <script type="module" src="../js/site-header.js"></script>
+    <site-header title="📶 Generátor signálů"></site-header>
+
+    <div class="card">
+      <div class="grid">
+        <!-- LEVÝ SLOUPEC – OVLÁDÁNÍ -->
+        <section class="controls">
+          <div class="row">
+            <label>Vlna:
+              <select id="wave">
+                <option value="sine">Sinus</option>
+                <option value="square">Čtverec</option>
+                <option value="triangle">Trojúhelník</option>
+                <option value="sawtooth">Pilovitá</option>
+                <option value="additive">Additivní (harmonické)</option>
+              </select>
+            </label>
+            <label>Rectifikace:
+              <select id="rect">
+                <option value="none">Žádná</option>
+                <option value="half">Půlvlnná</option>
+                <option value="full">Plnovlnná</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="range-line">
+            <label for="freq">Frekvence: <span id="freqLabel">440 Hz</span></label>
+            <input id="freq" type="range" min="0" max="1" step="0.001" />
+            <div class="row">
+              <label>Hz: <input id="freqNum" type="number" min="50" max="20000" step="1" style="width:110px" /></label>
+              <span class="small">50–20 000 (log škála)</span>
+            </div>
+          </div>
+
+          <div class="range-line">
+            <label for="gain">Hlasitost: <span id="gainLabel">10%</span></label>
+            <input id="gain" type="range" min="0" max="1" step="0.01" value="0.1" />
+          </div>
+
+          <!-- Additivní harmonické -->
+          <details id="additiveBox">
+            <summary>Harmonické (additivní) &nbsp; <span class="small">(n:amp)</span></summary>
+            <div class="row" style="margin-top:6px">
+              <button id="presetFlute" class="pill">Flute</button>
+              <button id="presetClarinet" class="pill">Clarinet</button>
+              <button id="presetViolin" class="pill">Violin</button>
+              <button id="presetClear" class="pill">Clear</button>
+            </div>
+            <div class="row">
+              <label>Seznam:
+                <input id="harmList" type="text" style="min-width:360px" placeholder="např. 1:1, 2:0.2, 3:0.1" />
+              </label>
+            </div>
+            <div class="small">Formát: <code>n:amp</code> oddělené čárkami (amp 0–1). Použije se <code>PeriodicWave</code>.</div>
+          </details>
+
+          <!-- Ovládání -->
+          <div class="row" style="margin-top:4px">
+            <button id="btnPlay" class="primary">▶️ Play</button>
+            <button id="btnStop">⏹ Stop</button>
+            <span id="safety" class="small">Limiter: aktivní</span>
+          </div>
+        </section>
+
+        <!-- PRAVÝ SLOUPEC – VIZUALIZACE -->
+        <section>
+          <div class="row" style="justify-content:space-between">
+            <div class="row">
+              <label><input type="checkbox" id="showOsc" checked /> Osciloskop</label>
+              <label><input type="checkbox" id="showFFT" checked /> Spektrum</label>
+            </div>
+            <div class="small">Vzorkování vizualizace: 60 FPS</div>
+          </div>
+          <canvas id="osc"></canvas>
+          <div style="height:8px"></div>
+          <canvas id="fft"></canvas>
+        </section>
+      </div>
+    </div>
+
+    <!-- Teorie / Nástroj toggle -->
+    <div class="toggle">
+      <label for="toggleTheory">Zobrazit teorii</label>
+      <input id="toggleTheory" type="checkbox" checked aria-checked="true">
+    </div>
+
+    <section id="explainPanel" class="card explain">
+      <div class="explain-bar">
+        <h2>📘 Vysvětlení</h2>
+        <div id="toc"></div>
+      </div>
+      <article id="doc" class="md"></article>
+    </section>
+  </div>
+
+  <!-- Markdown tools (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/lib/common.min.js"></script>
+
+  <script type="module">
+    import { initTheme, applyTheme } from '../js/theme.js';
+    import * as MD from '../js/markdown_tools.js';
+    import { start, stop, setWave, setRect, setFreq, setGain, setAdditive, initViz, getState } from '../js/signals.js';
+    import * as P from './presets.js';
+
+    // Téma
+    initTheme();
+
+    // Markdown
+    const slugify = s => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'-');
+    MD.loadMarkdown('audio_generator_explain.md', document.getElementById('doc'), document.getElementById('toc'), slugify);
+
+    // Toggle teorie
+    (function(){
+      const chk = document.getElementById('toggleTheory');
+      const panel = document.getElementById('explainPanel');
+      const key = 'signals_showTheory';
+      const saved = localStorage.getItem(key);
+      chk.checked = (saved === null) ? true : (saved !== '0');
+      const apply = ()=>{ panel.style.display = chk.checked ? '' : 'none'; localStorage.setItem(key, chk.checked?'1':'0'); chk.setAttribute('aria-checked', chk.checked?'true':'false'); };
+      chk.addEventListener('change', apply); apply();
+    })();
+
+    // UI prvky
+    const $ = id => document.getElementById(id);
+    const freqEl = $('freq'); const freqNum = $('freqNum'); const freqLabel = $('freqLabel');
+    const gainEl = $('gain'); const gainLabel = $('gainLabel');
+
+    // mapování log slideru ↔ Hz
+    const MINF = 50, MAXF = 20000, LOGK = Math.log(MAXF/MINF);
+    const xToF = x => Math.round(MINF * Math.exp(LOGK * x));
+    const fToX = f => Math.log(Math.max(MINF, Math.min(MAXF, f))/MINF)/LOGK;
+
+    // init hodnoty
+    freqEl.value = fToX(440);
+    freqNum.value = 440;
+    freqLabel.textContent = '440 Hz';
+
+    // Handlery
+    freqEl.addEventListener('input', e=>{
+      const f = xToF(parseFloat(e.target.value));
+      freqNum.value = f; freqLabel.textContent = `${f} Hz`;
+      setFreq(f);
+    });
+    freqNum.addEventListener('input', e=>{
+      const f = Math.max(MINF, Math.min(MAXF, parseFloat(e.target.value)||440));
+      freqEl.value = fToX(f); freqLabel.textContent = `${f} Hz`;
+      setFreq(f);
+    });
+
+    gainEl.addEventListener('input', e=>{
+      const g = parseFloat(e.target.value)||0;
+      gainLabel.textContent = `${Math.round(g*100)}%`;
+      setGain(g);
+    });
+
+    $('wave').addEventListener('change', e=>{
+      setWave(e.target.value);
+      $('additiveBox').open = (e.target.value === 'additive');
+    });
+    $('rect').addEventListener('change', e=> setRect(e.target.value));
+
+    $('btnPlay').addEventListener('click', start);
+    $('btnStop').addEventListener('click', stop);
+
+    // Additive presets
+    const applyHarm = arr => {
+      $('harmList').value = arr.map(h => `${h.n}:${h.amp}`).join(', ');
+      setAdditive(arr);
+    };
+    $('presetFlute').addEventListener('click', ()=> applyHarm(P.Flute));
+    $('presetClarinet').addEventListener('click', ()=> applyHarm(P.Clarinet));
+    $('presetViolin').addEventListener('click', ()=> applyHarm(P.Violin));
+    $('presetClear').addEventListener('click', ()=> applyHarm([]));
+    $('harmList').addEventListener('change', ()=>{
+      const txt = $('harmList').value.trim();
+      const arr = txt ? txt.split(',').map(s=>s.trim()).map(pair=>{
+        const [n,a] = pair.split(':').map(x=>x.trim());
+        return { n: Math.max(1, parseInt(n,10)||1), amp: Math.max(0, Math.min(1, parseFloat(a)||0)) };
+      }) : [];
+      setAdditive(arr);
+    });
+
+    // Vizualizace
+    initViz({ osc: $('osc'), fft: $('fft'), showOsc: $('showOsc'), showFFT: $('showFFT') });
+
+    // Bezpečnostní poznámka
+    console.log('Tip: Začni na nízké hlasitosti. Limiter je aktivní, ale i tak opatrně se sluchátky.');
+  </script>
+</body>
+</html>

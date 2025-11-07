@@ -40,8 +40,7 @@
           "desc": "Spočítá hash (MD5, SHA-1, SHA-256) a ukáže rozdíl po změně znaku.",
           "difficulty": "🟡",
           "path": "hashing.html",
-          "tags": ["hash", "checksum"],
-          "hasExplain": true
+          "tags": ["hash", "checksum"]
         }
       ]
     },
@@ -87,7 +86,22 @@
           "desc": "Počet slov, znaků, frekvence písmen, export CSV.",
           "difficulty": "🟡",
           "path": "text_analyzer.html",
-          "tags": ["text", "frekvence", "statistika"],
+          "tags": ["text", "frekvence", "statistika"]
+        }
+      ]
+    },
+    {
+      "id": "signals",
+      "name": "📶 Signály",
+      "color": "#06b6d4",
+      "tools": [
+        {
+          "id": "signal_gen",
+          "name": "Generátor signálů",
+          "desc": "Osciloskop, spektrum, 50 Hz–20 kHz, rectifikace a additivní syntéza.",
+          "difficulty": "🟡",
+          "path": "signals/audio_generator.html",
+          "tags": ["audio", "fft", "fourier"],
           "hasExplain": true
         }
       ]
