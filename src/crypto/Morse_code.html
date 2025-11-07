@@ -30,7 +30,6 @@
       box-shadow: 0 2px 6px rgba(0,0,0,.05);
     }
     button:hover { background: #f1f1f1; }
-    .pill { padding: 4px 10px; border-radius: 999px; font-size: 13px; background:#f0f3ff; border-color:#cfd8ff; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
     .small { font-size: 12px; color: #555; }
     code { background: #f3f3f3; padding: 2px 6px; border-radius: 6px; }
@@ -42,7 +41,9 @@
 <body>
   <div class="app">
     <div class="card">
-      <h1>Text ⇄ Morseův kód</h1>
+      
+  <script type="module" src="../js/site-header.js"></script>
+      <site-header title="Text ⇄ Morseův kód"></site-header>
       <div class="small">Podporuje ITU znakovou sadu, normalizuje českou diakritiku a má speciální zacházení s „<b>CH</b>“ → <code>----</code>.</div>
     </div>
 

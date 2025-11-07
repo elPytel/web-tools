@@ -10,33 +10,10 @@
     <link rel="stylesheet" href="./css/hw-ui-kit.css">
     <style>
         
-        body {
-            background: #101215;
-            color: #e5e7eb;
-            --card-bg: #16181b;
-        }
-
-        /* Day theme overrides (togglable via body.day) */
-        body.day {
-            background: #f7fafc;
-            color: #0f172a;
-            --card-bg: #ffffff;
-        }
-
         body.day .panel {
             background: radial-gradient(120% 120% at 30% 10%, #ffffff, #f3f4f6);
             box-shadow: inset 0 2px 0 rgba(255, 255, 255, .6), inset 0 -2px 0 rgba(0, 0, 0, .06), 0 10px 30px rgba(0, 0, 0, .06);
             border: 1px solid #e6e9ec;
-        }
-
-        body.day .card {
-            background: white;
-            border-color: #e9eef3;
-            color: #111
-        }
-
-        body.day .label {
-            color: #6b7280
         }
 
         /* Invert 7-seg colors for day */
@@ -258,27 +235,6 @@
 
     <!-- Malé demo skripty jen pro náhled; v ostré verzi si je můžeš nahradit logikou -->
     <script>
-        // 7-segment demo (mapa segmentů pro číslice 0–9)
-        const MAP = {
-            "0": "abcef d".replace(/\s/g, ''), "1": "bc", "2": "abged", "3": "abgcd", "4": "fgbc",
-            "5": "afgcd", "6": "afgecd", "7": "abc", "8": "abcdefg", "9": "abfgcd", "-": "g", " ": ""
-        };
-        const segDisplay = document.getElementById('segDemo');
-        function setDigit(el, char) {
-            const on = (MAP[char] || "").split('');
-            el.querySelectorAll('.seg').forEach(s => s.classList.remove('on'));
-            el.querySelectorAll('.dp').forEach(s => s.classList.remove('on'));
-            on.forEach(k => { const seg = el.querySelector('.' + k); if (seg) seg.classList.add('on'); });
-            if (char === '.') el.querySelector('.dp')?.classList.add('on');
-        }
-        function renderValue(val) {
-            const digits = segDisplay.querySelectorAll('.digit');
-            const chars = (val + "").slice(0, digits.length).padStart(digits.length, ' ').split('');
-            digits.forEach((d, i) => setDigit(d, chars[i] === '.' ? '.' : chars[i]));
-        }
-        renderValue("123");
-        document.getElementById('segInput').addEventListener('input', e => renderValue(e.target.value));
-
         // knob demo
         // Gage (limited needle)
         const gage = document.getElementById('gage');
@@ -389,9 +345,18 @@
             });
         });
     </script>
-    <script type="module">
-    import { initTheme, applyTheme, getStoredTheme } from './js/theme.js';
-    initTheme();
+        <script type="module">
+        import { initTheme, applyTheme, getStoredTheme } from './js/theme.js';
+        import { createSevenSeg } from './js/sevenseg.js';
+        initTheme();
+
+        // Initialize 7-segment demo wiring
+        try {
+            const seg = createSevenSeg('#segDemo');
+            seg.setValue('123');
+            const segInput = document.getElementById('segInput');
+            if (segInput) segInput.addEventListener('input', e => seg.setValue(e.target.value));
+        } catch (e) { console.warn('7-seg init failed', e); }
 
     // sync radios
     const stored = localStorage.getItem('site_theme_mode') || 'auto';
