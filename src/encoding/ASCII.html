@@ -57,182 +57,133 @@
       </div>
     </div>
 
-    <div class="row">
-      <div class="card stack">
-        <h3>Text → Kódy</h3>
-  <textarea id="textIn" class="form-control" placeholder="Zadej text (čeština i emoji fungují v režimu UTF-8)…"></textarea>
-  <div class="controls form-inline">
-          <button id="toCodes">Převést</button>
-          <button id="copyCodes" class="pill">Kopírovat</button>
-          <button id="clearText">Vymazat</button>
+      <div class="row">
+        <div class="card stack">
+          <h3>Text → Kódy</h3>
+          <textarea id="textIn" class="form-control" placeholder="Zadej text (čeština i emoji fungují v režimu UTF-8)…"></textarea>
+          <div class="controls form-inline">
+            <button id="toCodes">Převést</button>
+            <button id="copyCodes" class="pill">Kopírovat</button>
+            <button id="clearText">Vymazat</button>
+          </div>
+          <textarea id="codesOut" class="form-control" placeholder="Výstupní kódy…" readonly></textarea>
+          <div class="small" id="noteText"></div>
         </div>
-  <textarea id="codesOut" class="form-control" placeholder="Výstupní kódy…" readonly></textarea>
-        <div class="small" id="noteText"></div>
+
+        <div class="card stack">
+          <h3>Kódy → Text</h3>
+          <textarea id="codesIn" class="form-control" placeholder="Zadej čísla (např. DEC: 65 66 67, HEX: 0x41 0x42, BIN: 01000001 …). Oddělovač je definovaný výše."></textarea>
+          <div class="controls form-inline">
+            <button id="toText">Převést</button>
+            <button id="copyText" class="pill">Kopírovat</button>
+            <button id="clearCodes">Vymazat</button>
+          </div>
+          <textarea id="textOut" class="form-control" placeholder="Dekódovaný text…" readonly></textarea>
+          <div class="small" id="noteCodes"></div>
+        </div>
       </div>
 
-      <div class="card stack">
-        <h3>Kódy → Text</h3>
-  <textarea id="codesIn" class="form-control" placeholder="Zadej čísla (např. DEC: 65 66 67, HEX: 0x41 0x42, BIN: 01000001 …). Oddělovač je definovaný výše."></textarea>
-  <div class="controls form-inline">
-          <button id="toText">Převést</button>
-          <button id="copyText" class="pill">Kopírovat</button>
-          <button id="clearCodes">Vymazat</button>
-        </div>
-  <textarea id="textOut" class="form-control" placeholder="Dekódovaný text…" readonly></textarea>
-        <div class="small" id="noteCodes"></div>
+      <div class="card">
+        <h3>Tipy</h3>
+        <ul class="small">
+          <li><b>ASCII režim:</b> znaky s kódem &gt;127 se nahradí <code>?</code> (kod 63).</li>
+          <li><b>UTF-8 režim:</b> text se převádí na bajty (0–255). HEX s paddingem = hezké <code>0x41 0xC4 0x8D…</code></li>
+          <li><b>Vstup kódů:</b> rozdělení probíhá podle tvého oddělovače i whitespace/čárek; prefixy <code>0x</code>/<code>0b</code> jsou povolené.</li>
+        </ul>
       </div>
     </div>
 
-    <div class="card">
-      <h3>Tipy</h3>
-      <ul class="small">
-        <li><b>ASCII režim:</b> znaky s kódem &gt;127 se nahradí <code>?</code> (kod 63).</li>
-        <li><b>UTF-8 režim:</b> text se převádí na bajty (0–255). HEX s paddingem = hezké <code>0x41 0xC4 0x8D…</code></li>
-        <li><b>Vstup kódů:</b> rozdělení probíhá podle tvého oddělovače i whitespace/čárek; prefixy <code>0x</code>/<code>0b</code> jsou povolené.</li>
-      </ul>
-    </div>
-  </div>
+    <script type="module">
+      import {
+        formatNumber,
+        parseToken,
+        toAsciiCodes,
+        toUtf8Bytes,
+        bytesToUtf8,
+        splitBySep
+      } from '../js/encoding.js';
 
-  <script>
-    // --- Helpers ---
-    const $ = id => document.getElementById(id);
-    const modeEl = $('mode'), baseEl = $('base'), sepEl = $('sep'), prefixEl = $('prefix'), padEl = $('pad');
-    const textIn = $('textIn'), codesOut = $('codesOut'), noteText = $('noteText');
-    const codesIn = $('codesIn'), textOut = $('textOut'), noteCodes = $('noteCodes');
+      // --- Helpers ---
+      const $ = id => document.getElementById(id);
+      const modeEl = $('mode'), baseEl = $('base'), sepEl = $('sep'), prefixEl = $('prefix'), padEl = $('pad');
+      const textIn = $('textIn'), codesOut = $('codesOut'), noteText = $('noteText');
+      const codesIn = $('codesIn'), textOut = $('textOut'), noteCodes = $('noteCodes');
 
-    function formatNumber(n, base, usePrefix, pad) {
-      let s = n.toString(base).toUpperCase();
-      if (pad) {
-        const width = base === 16 ? 2 : (base === 2 ? 8 : 0);
-        if (width) s = s.padStart(width, '0');
-      }
-      if (usePrefix) {
-        if (base === 16) s = '0x' + s;
-        if (base === 2)  s = '0b' + s;
-      }
-      return s;
-    }
+      // --- Text -> Codes ---
+      $('toCodes').addEventListener('click', () => {
+        const mode = modeEl.value;
+        const base = Number(baseEl.value);
+        const sep = sepEl.value;
+        const usePrefix = prefixEl.checked;
+        const usePad = padEl.checked;
 
-    function parseToken(tok, base) {
-      let t = tok.trim();
-      if (!t) return null;
-      // podpora 0x / 0b i když máš nastavený jiný base
-      if (/^0x/i.test(t)) return parseInt(t, 16);
-      if (/^0b/i.test(t)) return parseInt(t.slice(2), 2);
-      // jinak použij zvolený base
-      const n = parseInt(t, base);
-      return Number.isFinite(n) ? n : null;
-    }
-
-    function toAsciiCodes(str) {
-      const codes = [];
-      let replaced = 0;
-      for (const ch of str) {
-        let cp = ch.codePointAt(0);
-        if (cp > 127) { cp = 63; replaced++; } // '?'
-        codes.push(cp);
-      }
-      return { codes, replaced };
-    }
-
-    function toUtf8Bytes(str) {
-      const enc = new TextEncoder();
-      return Array.from(enc.encode(str)); // 0..255
-    }
-
-    function bytesToUtf8(bytes) {
-      try {
-        const dec = new TextDecoder('utf-8', { fatal: true });
-        return dec.decode(new Uint8Array(bytes));
-      } catch {
-        // pokud sekvence nedává smysl, zkus bez fatal
-        return new TextDecoder('utf-8').decode(new Uint8Array(bytes));
-      }
-    }
-
-    function splitBySep(str, sep) {
-      if (!str.trim()) return [];
-      // rozděluj podle: explicitního oddělovače, whitespace, nebo čárek
-      const esc = sep ? sep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
-      const re = esc ? new RegExp(`\\s*${esc}\\s*|\\s+|,\\s*`, 'g') : /\s+|,\s*/g;
-      return str.split(re).filter(Boolean);
-    }
-
-    // --- Text -> Codes ---
-    $('toCodes').addEventListener('click', () => {
-      const mode = modeEl.value;
-      const base = Number(baseEl.value);
-      const sep = sepEl.value;
-      const usePrefix = prefixEl.checked;
-      const usePad = padEl.checked;
-
-      let nums = [];
-      let note = '';
-      if (mode === 'ascii') {
-        const { codes, replaced } = toAsciiCodes(textIn.value);
-        nums = codes;
-        if (replaced) note = `Pozn.: ${replaced} znaků mimo ASCII bylo nahrazeno '?' (63).`;
-      } else {
-        nums = toUtf8Bytes(textIn.value);
-      }
-
-      const out = nums.map(n => formatNumber(n, base, usePrefix, usePad)).join(sep || ' ');
-      codesOut.value = out;
-      noteText.textContent = note;
-    });
-
-    $('copyCodes').addEventListener('click', async () => {
-      await navigator.clipboard.writeText(codesOut.value || '');
-    });
-
-    $('clearText').addEventListener('click', () => {
-      textIn.value = ''; codesOut.value = ''; noteText.textContent = '';
-    });
-
-    // --- Codes -> Text ---
-    $('toText').addEventListener('click', () => {
-      const mode = modeEl.value;
-      const base = Number(baseEl.value);
-      const sep = sepEl.value;
-
-      const toks = splitBySep(codesIn.value, sep);
-      const nums = [];
-      let invalid = 0;
-
-      for (const t of toks) {
-        const n = parseToken(t, base);
-        if (n === null || !Number.isFinite(n)) { invalid++; continue; }
+        let nums = [];
+        let note = '';
         if (mode === 'ascii') {
-          if (n < 0 || n > 127) { invalid++; continue; }
-          nums.push(n);
+          const { codes, replaced } = toAsciiCodes(textIn.value);
+          nums = codes;
+          if (replaced) note = `Pozn.: ${replaced} znaků mimo ASCII bylo nahrazeno '?' (63).`;
         } else {
-          // utf8 bytes
-          if (n < 0 || n > 255) { invalid++; continue; }
-          nums.push(n);
+          nums = toUtf8Bytes(textIn.value);
         }
-      }
 
-      let text = '';
-      if (mode === 'ascii') {
-        text = String.fromCharCode(...nums);
-      } else {
-        text = bytesToUtf8(nums);
-      }
-      textOut.value = text;
-      noteCodes.textContent = invalid ? `Pozn.: ${invalid} neplatných položek ignorováno.` : '';
-    });
+        const out = nums.map(n => formatNumber(n, base, usePrefix, usePad)).join(sep || ' ');
+        codesOut.value = out;
+        noteText.textContent = note;
+      });
 
-    $('copyText').addEventListener('click', async () => {
-      await navigator.clipboard.writeText(textOut.value || '');
-    });
+      $('copyCodes').addEventListener('click', async () => {
+        await navigator.clipboard.writeText(codesOut.value || '');
+      });
 
-    $('clearCodes').addEventListener('click', () => {
-      codesIn.value = ''; textOut.value = ''; noteCodes.textContent = '';
-    });
+      $('clearText').addEventListener('click', () => {
+        textIn.value = ''; codesOut.value = ''; noteText.textContent = '';
+      });
 
-    // Live převod (volitelné – můžeš zakomentovat)
-    textIn.addEventListener('input', () => $('toCodes').click());
-    codesIn.addEventListener('input', () => $('toText').click());
-  </script>
+      // --- Codes -> Text ---
+      $('toText').addEventListener('click', () => {
+        const mode = modeEl.value;
+        const base = Number(baseEl.value);
+        const sep = sepEl.value;
+
+        const toks = splitBySep(codesIn.value, sep);
+        const nums = [];
+        let invalid = 0;
+
+        for (const t of toks) {
+          const n = parseToken(t, base);
+          if (n === null || !Number.isFinite(n)) { invalid++; continue; }
+          if (mode === 'ascii') {
+            if (n < 0 || n > 127) { invalid++; continue; }
+            nums.push(n);
+          } else {
+            // utf8 bytes
+            if (n < 0 || n > 255) { invalid++; continue; }
+            nums.push(n);
+          }
+        }
+
+        let text = '';
+        if (mode === 'ascii') {
+          text = String.fromCharCode(...nums);
+        } else {
+          text = bytesToUtf8(nums);
+        }
+        textOut.value = text;
+        noteCodes.textContent = invalid ? `Pozn.: ${invalid} neplatných položek ignorováno.` : '';
+      });
+
+      $('copyText').addEventListener('click', async () => {
+        await navigator.clipboard.writeText(textOut.value || '');
+      });
+
+      $('clearCodes').addEventListener('click', () => {
+        codesIn.value = ''; textOut.value = ''; noteCodes.textContent = '';
+      });
+
+      // Live převod (volitelné – můžeš zakomentovat)
+      textIn.addEventListener('input', () => $('toCodes').click());
+      codesIn.addEventListener('input', () => $('toText').click());
+    </script>
 </body>
 </html>
