@@ -92,3 +92,49 @@ s(t) =
 	- Běžné volby: 512, 1024, 2048 (výchozí), 4096 — 2048 je dobrý kompromis pro interaktivní vizualizaci.
 	- Pokud chceš zvýraznit blízké harmonické, zvol větší N; pokud potřebuješ rychlou reakci na změny signálu, zvol menší N.
 
+## Sinus, sinus, sinus
+
+Všechny základní průběhy (čtverec, trojúhelník, pila) lze vyjádřit jako součet sinusů (Fourierova analýza). 
+
+### Čtvercový průběh
+
+Například čtvercový průběh obsahuje pouze liché harmonické s amplitudami klesajícími s $1/n$:
+
+$$
+s_{square}(t) = \sum_{k=0}^{\infty} \frac{1}{2k+1} \sin(2\pi (2k+1) f_0 t)
+$$
+
+Tabulka harmonických pro čtvercový průběh:
+| Harmonická (n) | Frekvence (Hz) | Amplituda |
+|----------------|----------------|-----------|
+| 1 (základní)   | $f_0$          | 1         |
+| 3 harmonická | $3f_0$       |  1/3       |
+| 5 harmonická | $5f_0$       | 1/5       |
+| 7 harmonická | $7f_0$       | 1/7       |
+
+
+### Trojúhelníkový průběh
+
+Trojúhelníkový průběh obsahuje všechny harmonické s amplitudami klesajícími s $1/n^2$:
+
+$$
+s_{triangle}(t) = \sum_{k=0}^{\infty} \frac{1}{(2k+1)^2} \sin(2\pi (2k+1) f_0 t)
+$$
+
+### Pilový průběh
+
+Pilový průběh obsahuje všechny harmonické s amplitudami klesajícími s $1/n$:
+
+$$
+s_{sawtooth}(t) = \sum_{k=1}^{\infty} \frac{1}{k} \sin(2\pi k f_0 t)
+$$
+
+### Úlohy
+
+> [!question]
+> Vyzkoušej aditivní syntézu tím, že nastavíš různé amplitudy harmonických pro vlastní zvukové průběhy!
+
+Přepiš hodnoty harmonických pro čtvercový (z tabulky výše) do vstupu pro additivní syntézu a poslouchej výsledný zvuk. Podívej se na spektrum a ověř, že obsahuje pouze liché harmonické s očekávanými amplitudami. Jak vypadá amplitudové spektrum?
+
+
+
