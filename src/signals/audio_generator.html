@@ -104,19 +104,8 @@
       </div>
     </div>
 
-    <!-- Teorie / Nástroj toggle -->
-    <div class="toggle">
-      <label for="toggleTheory">Zobrazit teorii</label>
-      <input id="toggleTheory" type="checkbox" checked aria-checked="true">
-    </div>
-
-    <section id="explainPanel" class="card explain">
-      <div class="explain-bar">
-        <h2>📘 Vysvětlení</h2>
-        <div id="toc"></div>
-      </div>
-      <article id="doc" class="md"></article>
-    </section>
+    <script type="module" src="../js/site-doc.js"></script>
+    <site-doc src="audio_generator_explain.md" title="📘 Vysvětlení" toggle></site-doc>
   </div>
 
   <!-- Markdown tools (CDN) -->
@@ -126,7 +115,6 @@
 
   <script type="module">
     import { initTheme, applyTheme } from '../js/theme.js';
-    import * as MD from '../js/markdown_tools.js';
   import { start, stop, setWave, setRect, setFreq, setGain, setAdditive, initViz, getState, setFFTSize } from '../js/signals.js';
     // Load presets from JSON (top-level await in module script)
     let P = {};
@@ -139,21 +127,6 @@
 
     // Téma
     initTheme();
-
-    // Markdown
-    const slugify = s => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'-');
-    MD.loadMarkdown('audio_generator_explain.md', document.getElementById('doc'), document.getElementById('toc'), slugify);
-
-    // Toggle teorie
-    (function(){
-      const chk = document.getElementById('toggleTheory');
-      const panel = document.getElementById('explainPanel');
-      const key = 'signals_showTheory';
-      const saved = localStorage.getItem(key);
-      chk.checked = (saved === null) ? true : (saved !== '0');
-      const apply = ()=>{ panel.style.display = chk.checked ? '' : 'none'; localStorage.setItem(key, chk.checked?'1':'0'); chk.setAttribute('aria-checked', chk.checked?'true':'false'); };
-      chk.addEventListener('change', apply); apply();
-    })();
 
     // UI prvky
     const $ = id => document.getElementById(id);

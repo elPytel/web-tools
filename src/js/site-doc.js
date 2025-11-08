@@ -4,17 +4,7 @@
 
 const DEFAULT_TITLE = '📘 Dokumentace';
 
-// inject minimal TOC styles once so links have sensible spacing
-if (typeof document !== 'undefined' && !document.getElementById('site-doc-toc-style')) {
-  const s = document.createElement('style');
-  s.id = 'site-doc-toc-style';
-  s.textContent = `
-  /* small spacing between TOC links, allow wrapping */
-  .toc a { display: inline-block; margin: 0 0.75rem 0.5rem 0; padding: 0.15rem 0; }
-  .toc { margin-top: 0.5rem; }
-  `;
-  document.head.appendChild(s);
-}
+
 
 class SiteDoc extends HTMLElement {
   constructor() {

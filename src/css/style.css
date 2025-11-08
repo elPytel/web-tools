@@ -208,6 +208,10 @@ input, textarea, select {
 #toc a { text-decoration:none; border:1px solid var(--border); padding:4px 8px; border-radius:999px }
 #toc a:hover { background: #0f2238 }
 
+/* TOC spacing and wrapping (used by site-doc .toc and legacy #toc) */
+.toc, #toc { margin-top: 0.5rem; }
+.toc a, #toc a { display: inline-block; margin: 0 0.75rem 0.5rem 0; padding: 0.15rem 0.6rem; }
+
 .md { line-height:1.65 }
 .md h1, .md h2, .md h3 { margin: 1em 0 .4em }
 .md p, .md ul, .md ol, .md pre, .md blockquote { margin: .5em 0 }
