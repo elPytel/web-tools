@@ -44,19 +44,8 @@
       </div>
     </div>
 
-    <!-- Teorie / Nástroj toggle -->
-    <div class="toggle-toggle" style="justify-content:center">
-      <label for="toggleTheory">Zobrazit teorie</label>
-      <input id="toggleTheory" type="checkbox" checked aria-checked="true">
-    </div>
-
-      <section id="explainPanel" class="card explain">
-    <div class="explain-bar">
-      <h2>📘 Vysvětlení</h2>
-      <div id="toc"></div>
-    </div>
-    <article id="doc" class="md"></article>
-  </section>
+    <script type="module" src="../js/site-doc.js"></script>
+    <site-doc src="caesar_explain.md" title="📘 Vysvětlení" toggle></site-doc>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -86,47 +75,6 @@
   </script>
 
   <script type="module">
-    const mod = await import('../js/markdown_tools.js');
-    // Načti explain.md ze stejné složky; volitelně ?doc=abc.md
-    const mdFile = new URLSearchParams(location.search).get('doc') || 'caesar_explain.md';
-
-    const docEl = document.getElementById('doc');
-    const tocEl = document.getElementById('toc');
-
-    // Vytvoř slug pro anchor odkazy
-    const slugify = (s) => s
-      .toLowerCase()
-      .normalize('NFD').replace(/\p{M}/gu, '')
-      .replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
-
-    // Lokální souborový protokol neumí fetch() → připomeň dev server
-    if (location.protocol === 'file:') {
-      console.warn('Pro načtení explain.md spusť lokální server (např. "python -m http.server").');
-    }
-
-    // zavolej exportovanou funkci z modulu
-    await mod.loadMarkdown(mdFile, docEl, tocEl, slugify);
-  </script>
-
-  <script type="module">
-    const $ = id => document.getElementById(id);
-
-    // Toggle logic: hide/show explain panel and persist choice
-    (function setupToggle() {
-      const chk = $('toggleTheory');
-      const panel = $('explainPanel');
-      const saved = localStorage.getItem('caesar_showTheory');
-      // default: shown unless explicitly '0'
-      chk.checked = (saved === null) ? true : (saved !== '0');
-      const apply = () => {
-        panel.style.display = chk.checked ? '' : 'none';
-        localStorage.setItem('caesar_showTheory', chk.checked ? '1' : '0');
-        chk.setAttribute('aria-checked', chk.checked ? 'true' : 'false');
-      };
-      chk.addEventListener('change', apply);
-      apply();
-    })();
-
     async function init() {
       try {
         const mod = await import('../js/caesar.js');
