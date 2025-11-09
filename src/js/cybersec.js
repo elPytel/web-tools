@@ -76,11 +76,15 @@ export function computeRateAndHashTime({ mode='manual', rate=1, ghz=0, instr=1, 
 
 // ========== Wordlist configuration (unified) ==========
   // Map of available wordlists: key -> { label, path }
-export const WORDLISTS = {
-  builtin: { label: 'Vestavěný (top common)', path: '../assets/top_common_pswd.txt' },
-  darkweb: { label: 'darkweb2017 top: 10000', path: '../assets/darkweb2017_top-10000.txt' },
-  nordpass: { label: 'nordpass top: 200', path: '../assets/nordpass_top-200.txt' }
-};
+export const WORDLISTS = [
+  { id: 'builtin', label: 'Vestavěný (top common)', path: '../assets/top_common_pswd.txt' },
+  { id: 'darkweb', label: 'darkweb2017 top: 10000', path: '../assets/darkweb2017_top-10000.txt' },
+  { id: 'nordpass', label: 'nordpass top: 200', path: '../assets/nordpass_top-200.txt' }
+];
+
+export function getWordlistEntry(id){
+  return WORDLISTS.find(e => e.id === id) || null;
+}
 
 export function loadWordlistFromPath(path){
   return fetch(path)

@@ -30,51 +30,62 @@
 
     <!-- DB leak configuration card -->
     <section class="card">
-      <h2>Simulovaný únik DB – konfigurace</h2>
-      <div id="configPanel" class="config-col" style="max-width:560px">
-        <label>Počet záznamů:
-          <input id="numRows" type="number" min="1" max="500" value="20" class="small-input">
-        </label>
-        <label>Algoritmus hashe:
-          <select id="algo">
-            <option value="MD5" selected>MD5 (ilustrativně)</option>
-            <option value="SHA-1">SHA-1</option>
-            <option value="SHA-256">SHA-256</option>
-          </select>
-        </label>
-        <label>Salt:
-          <select id="saltMode">
-            <option value="none" selected>Žádný</option>
-            <option value="per-user">Per-user random salt</option>
-            <option value="regdate">Odvozená z datumu registrace</option>
-          </select>
-        </label>
-        <div class="row" id="saltOptions" style="display:none">
-          <label>Salt umístění:
-            <select id="saltPos"><option value="suffix">Suffix</option><option value="prefix">Prefix</option></select>
+      <h2>Simulovaný únik DB</h2>
+      <div id="configPanel" class="grid2" style="max-width:100%;">
+        <div class="config-col" style="max-width:560px;">
+          <!-- levý sloupec: nastavení DB -->
+          <label>Počet záznamů:
+            <input id="numRows" type="number" min="1" max="500" value="20" class="small-input">
           </label>
-        </div>
-
-        <div style="margin-top:12px" class="small muted">
-          Poznámka: Rainbow tables většinou nefungují při použití saltů. Tato simulace ilustruje oba přístupy.
-        </div>
-
-        <div style="margin-top:12px">
-          <button id="btnGen" class="btn primary">Generovat DB</button>
-          <button id="btnClear" class="btn">Vyčistit</button>
-        </div>
-        <!-- Leak wordlist controls: independent source for passwords used in the leaked DB -->
-        <div style="margin-top:12px; border-top:1px solid var(--border); padding-top:10px;">
-          <label style="font-weight:600; display:block; margin-bottom:6px">Zdroj slovníku pro unik (hesla v uniklé DB):</label>
-          <label>Zdroj slovníku: 
-            <select id="leakWordlistChoice"></select>
+          <label>Algoritmus hashe:
+            <select id="algo">
+              <option value="MD5" selected>MD5 (ilustrativně)</option>
+              <option value="SHA-1">SHA-1</option>
+              <option value="SHA-256">SHA-256</option>
+            </select>
           </label>
-          <div id="leakUploadBox" style="display:none; margin-top:6px;">
-            <input id="leakWordlistFile" type="file" accept=".txt" />
-            <div class="small muted">Soubor: jeden kandidát na řádek.</div>
+          <label>Salt:
+            <select id="saltMode">
+              <option value="none" selected>Žádný</option>
+              <option value="per-user">Per-user random salt</option>
+              <option value="regdate">Odvozená z datumu registrace</option>
+            </select>
+          </label>
+          <div class="row" id="saltOptions" style="display:none">
+            <label>Salt umístění:
+              <select id="saltPos">
+                <option value="suffix">Suffix</option>
+                <option value="prefix">Prefix</option>
+              </select>
+            </label>
           </div>
-          <label style="margin-top:6px">Náhled slovníku (unik):</label>
-          <textarea id="leakWordlistPreview" readonly class="small-input" style="width:100%; min-height:80px; margin-top:6px;"></textarea>
+    
+          <div style="margin-top:12px" class="small muted">
+            Poznámka: Rainbow tables většinou nefungují při použití saltů. Tato simulace ilustruje oba přístupy.
+          </div>
+    
+          <div style="margin-top:8px">
+            <button id="btnGen" class="btn primary">Generovat DB</button>
+            <button id="btnClear" class="btn">Vyčistit</button>
+          </div>
+        </div>
+    
+        <div class="config-col" style="min-width:260px;">
+          <!-- pravý sloupec: Zdroj slovníku pro unik -->
+          <div style="margin-left:6px; padding-left:12px; border-left:1px solid var(--border);">
+            <label style="font-weight:600; display:block; margin-bottom:6px">Zdroj slovníku pro unik (hesla v uniklé
+              DB):</label>
+            <label>Zdroj slovníku:
+              <select id="leakWordlistChoice"></select>
+            </label>
+            <div id="leakUploadBox" style="display:none; margin-top:6px;">
+              <input id="leakWordlistFile" type="file" accept=".txt" />
+              <div class="small muted">Soubor: jeden kandidát na řádek.</div>
+            </div>
+            <label style="margin-top:6px">Náhled slovníku (únik):</label>
+            <textarea id="leakWordlistPreview" readonly class="small-input"
+              style="width:100%; min-height:120px; margin-top:6px;"></textarea>
+          </div>
         </div>
       </div>
     </section>
@@ -82,41 +93,47 @@
     <!-- Attack / cracking configuration card -->
     <section class="card">
       <h2>Útočník - lámání hesel</h2>
-      <div style="display:flex; flex-direction:column; gap:10px; max-width:680px;">
-        <label>Zdroj slovníku:
-          <select id="wordlistChoice"></select>
-        </label>
-        <div id="uploadBox" style="display:none">
-          <input id="wordlistFile" type="file" accept=".txt" />
-          <div class="small muted">Soubor: jeden kandidát na řádek.</div>
+      <div id="configPanel" class="grid2" style="max-width:100%;">
+        <div class="config-col" style="max-width:560px;">
+          <label>Počet zkoušených kandidátů (z wordlistu) / limit:
+            <input id="limit" type="number" min="1" max="1000000" value="5000" class="small-input">
+          </label>
+    
+          <label>Útočný režim:
+            <select id="attackMode">
+              <option value="bruteforce">Brute-force</option>
+              <option value="wordlist" selected>Wordlist</option>
+              <option value="wordlist_salted">Wordlist + salt</option>
+              <option value="rainbow">Rainbow table (precompute hash→pwd)</option>
+            </select>
+          </label>
+    
+          <div style="margin-top:8px">
+            <div class="small muted">Zobrazený progres reflektuje počet testovaných kandidátů.</div>
+          </div>
+          <div style="margin-top:8px" class="row">
+            <button id="btnStart" class="btn primary">▶ Spustit útok</button>
+            <button id="btnStop" class="btn">■ Zastavit</button>
+          </div>
         </div>
-
-        <label>Náhled slovníku (lámání):
-          <textarea id="wordlistPreview" readonly class="small-input" style="width:100%; min-height:140px; margin-top:6px;"></textarea>
-        </label>
-
-        <label>Počet zkoušených kandidátů (z wordlistu) / limit:
-          <input id="limit" type="number" min="1" max="1000000" value="5000" class="small-input">
-        </label>
-
-        <label>Útočný režim:
-          <select id="attackMode">
-            <option value="bruteforce" selected>Brute-force</option>
-            <option value="wordlist" selected>Wordlist</option>
-            <option value="wordlist_salted" selected>Wordlist + salt</option>
-            <option value="rainbow">Rainbow table (precompute hash→pwd)</option>
-          </select>
-        </label>
-
-        <div style="margin-top:8px" class="row">
-          <button id="btnStart" class="btn primary">▶ Spustit útok</button>
-          <button id="btnStop" class="btn">■ Zastavit</button>
+    
+        <div class="config-col" style="min-width:260px;">
+          <div style="margin-left:6px; padding-left:12px; border-left:1px solid var(--border);">
+            <label style="font-weight:600; display:block; margin-bottom:6px">Zdroj slovníku pro lámání hesel:</label>
+            <label>Zdroj slovníku:
+              <select id="wordlistChoice"></select>
+            </label>
+            <div id="uploadBox" style="display:none">
+              <input id="wordlistFile" type="file" accept=".txt" />
+              <div class="small muted">Soubor: jeden kandidát na řádek.</div>
+            </div>
+    
+            <label>Náhled slovníku (lámání):
+              <textarea id="wordlistPreview" readonly class="small-input"
+                style="width:100%; min-height:140px; margin-top:6px;"></textarea>
+            </label>
+          </div>
         </div>
-
-        <div style="margin-top:8px">
-          <div class="small muted">Zobrazený progres reflektuje počet testovaných kandidátů.</div>
-        </div>
-      </div>
     </section>
 
     <section class="card">
@@ -154,7 +171,7 @@
   const $ = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 
-  import {loadWordlistFromPath, digestText, makeSalt, randHex, randEmail, randDate, WORDLISTS } from '../js/cybersec.js';
+  import {loadWordlistFromPath, digestText, makeSalt, randHex, randEmail, randDate, WORDLISTS, getWordlistEntry } from '../js/cybersec.js';
 
   // leak-specific wordlist state (used for generating leaked DB pool)
   let leakWordlist = [];
@@ -274,11 +291,11 @@
   function populateWordlistOptions(el){
     const target = el || wordlistChoiceEl;
     target.innerHTML = '';
-    for (const key of Object.keys(WORDLISTS)){
+    for (const entry of WORDLISTS){
       const opt = document.createElement('option');
-      opt.value = key;
-      opt.textContent = WORDLISTS[key].label;
-      if (key === 'builtin') opt.selected = true;
+      opt.value = entry.id;
+      opt.textContent = entry.label;
+      if (entry.id === 'builtin') opt.selected = true;
       target.appendChild(opt);
     }
     const optUpload = document.createElement('option');
@@ -293,74 +310,52 @@
     populateWordlistOptions(leakWordlistChoiceEl);
   }
 
+  // replace separate loaders with a unified loader ------------------------------------------------
+  async function loadWordlistGeneric({ choiceEl, fileInputEl = null, previewEl = null, targetVar = 'wordlist' }){
+    const choice = choiceEl.value;
+    const setTarget = (arr) => {
+      if (targetVar === 'wordlist') wordlist = arr;
+      else leakWordlist = arr;
+    };
+    if (choice === 'upload'){
+      const f = fileInputEl ? fileInputEl.files[0] : null;
+      const txt = f ? await f.text() : '';
+      if (previewEl) previewEl.value = txt;
+      if (!f) { setTarget([]); return targetVar === 'wordlist' ? wordlist : leakWordlist; }
+      const arr = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      setTarget(arr);
+      if (previewEl) previewEl.value = arr.join('\n');
+      log(`${targetVar === 'wordlist' ? 'Wordlist' : 'Leak wordlist'} načten (${arr.length} položek)`);
+      return arr;
+    } else {
+      const entry = getWordlistEntry(choice);
+      if (!entry) { setTarget([]); if (previewEl) previewEl.value = ''; return targetVar === 'wordlist' ? wordlist : leakWordlist; }
+      try {
+        const res = await fetch(entry.path, { cache: 'no-store' });
+        if (!res.ok) throw new Error('wordlist not found');
+        const txt = await res.text();
+        const arr = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+        setTarget(arr);
+        if (previewEl) previewEl.value = arr.join('\n');
+        log(`${targetVar === 'wordlist' ? 'Wordlist' : 'Leak wordlist'} načten (${arr.length} položek)`);
+        return arr;
+      } catch (err) {
+        alert('Chyba: nepodařilo se načíst ' + (entry.path || choice) + ': ' + (err.message||err));
+        setTarget([]);
+        if (previewEl) previewEl.value = '';
+        return [];
+      }
+    }
+  }
+
+  // convenience wrappers to restore previous API used across the file
   async function loadWordlist(){
-    const choice = wordlistChoiceEl.value;
-    wordlist = [];
-    if (choice === 'upload'){
-      const f = fileEl.files[0];
-      if (!f) {
-        alert('Nahraj .txt soubor se slovníkem (jedno heslo na řádek).');
-        return;
-      }
-      const txt = await f.text();
-      wordlist = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-    } else {
-      const entry = WORDLISTS[choice];
-      if (!entry) { wordlist = []; return; }
-      else {
-        try {
-          const res = await fetch(entry.path, { cache: 'no-store' });
-          if (!res.ok) throw new Error('wordlist not found');
-          const txt = await res.text();
-          wordlist = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-        } catch (err) {
-          alert('Chyba: nepodařilo se načíst ' + (entry.path || choice) + ': ' + (err.message||err));
-          wordlist = [];
-        }
-      }
-    }
-    log(`Wordlist načten (${wordlist.length} položek)`);
-    if (previewEl) previewEl.value = wordlist.join('\n');
-    return wordlist;
+    return loadWordlistGeneric({ choiceEl: wordlistChoiceEl, fileInputEl: fileEl, previewEl: previewEl, targetVar: 'wordlist' });
   }
-
-  // load leak-specific wordlist (used for generování uniklé DB)
   async function loadLeakWordlist(){
-    const choice = leakWordlistChoiceEl.value;
-    leakWordlist = [];
-    if (choice === 'upload'){
-      const f = leakFileEl.files[0];
-      leakPreviewEl.value = f ? await f.text() : '';
-      if (!f) return leakWordlist;
-      leakWordlist = (await f.text()).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-    } else {
-      const entry = WORDLISTS[choice];
-      if (!entry) { leakWordlist = []; }
-      else {
-        try {
-          const res = await fetch(entry.path, { cache: 'no-store' });
-          if (!res.ok) throw new Error('wordlist not found');
-          const txt = await res.text();
-          leakWordlist = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-          leakPreviewEl.value = leakWordlist.join('\n');
-        } catch (err) {
-          alert('Chyba: nepodařilo se načíst ' + (entry.path || choice) + ': ' + (err.message||err));
-          leakWordlist = [];
-          leakPreviewEl.value = '';
-        }
-      }
-    }
-    log(`Leak wordlist načten (${leakWordlist.length} položek)`);
-    return leakWordlist;
+    return loadWordlistGeneric({ choiceEl: leakWordlistChoiceEl, fileInputEl: leakFileEl, previewEl: leakPreviewEl, targetVar: 'leakWordlist' });
   }
 
-  // ========== Leak wordlist loader/preview ==========
-
-
-  // Unified preview updater for both attacker and leak previews
-  // selectEl: the <select> element (wordlistChoiceEl or leakWordlistChoiceEl)
-  // previewEl: the textarea element to fill
-  // fileInputEl: optional file input to read when "upload" selected
   async function updatePreviewFor(selectEl, previewEl, fileInputEl = null) {
     if (!previewEl || !selectEl) return;
     const choice = selectEl.value;
@@ -369,7 +364,7 @@
       previewEl.value = f ? await f.text() : '';
       return;
     }
-    const entry = WORDLISTS[choice];
+    const entry = getWordlistEntry(choice);
     if (!entry) { previewEl.value = ''; return; }
     try {
       previewEl.value = (await loadWordlistFromPath(entry.path)).join('\n');
@@ -423,6 +418,7 @@
     const algo = algoEl.value;
     const saltMode = saltModeEl.value;
     const saltPos = saltPosEl.value;
+    const saltLen = 8; // keep same salt length as DB generation
     const L = Math.min(limit, wordlist.length);
     let tested = 0;
     stopRequested = false;
@@ -437,11 +433,19 @@
       for (let ui=0; ui<db.length; ui++){
         const row = db[ui];
         if (row.cracked) { progressEl.value++; continue; }
-        
-        const saltedInput = (saltPos === 'prefix') ? (row.salt + cand) : (cand + row.salt);
+
+        // derive salt same way as during DB generation
+        let salt = '';
+        if (saltMode === 'per-user') {
+          salt = row.salt || '';
+        } else if (saltMode === 'regdate') {
+          salt = makeSalt(saltLen, row.regdate, 'regdate');
+        }
+
+        const saltedInput = (saltPos === 'prefix') ? (salt + cand) : (cand + salt);
         log(`Salted input for id=${row.id}: "${saltedInput}"`);
         const hashedCandidateSalted = await digestText(algo, saltedInput);
-        
+
         tested++;
         if (hashedCandidateSalted === row.hash){
           row.cracked = true; row.plain = cand;
@@ -498,13 +502,30 @@
   });
  
   // show file-upload box only when user chooses 'upload'
-  wordlistChoiceEl.addEventListener('change', ()=> {
+  wordlistChoiceEl.addEventListener('change', async ()=> {
     uploadBox.style.display = wordlistChoiceEl.value === 'upload' ? '' : 'none';
-    updatePreviewFor(wordlistChoiceEl, previewEl, fileEl);
+    if (wordlistChoiceEl.value === 'upload') {
+      // pokud už je vybrán soubor, načti ho do wordlistu; jinak vyčisti preview a vyprázdni wordlist
+      if (fileEl.files && fileEl.files[0]) {
+        await loadWordlist();
+      } else {
+        if (previewEl) previewEl.value = '';
+        wordlist = [];
+      }
+    } else {
+      // pro ne-upload volby načti slovník (nastaví wordlist) a aktualizuj preview
+      await loadWordlist();
+      await updatePreviewFor(wordlistChoiceEl, previewEl, fileEl);
+    }
   });
-  // when a file is selected, refresh preview if upload is active
-  fileEl.addEventListener('change', ()=> {
-    if (wordlistChoiceEl.value === 'upload') updatePreviewFor(wordlistChoiceEl, previewEl, fileEl);
+  
+  // when a file is selected, load wordlist if upload is active, otherwise update preview
+  fileEl.addEventListener('change', async ()=> {
+    if (wordlistChoiceEl.value === 'upload') {
+      await loadWordlist();
+    } else {
+      await updatePreviewFor(wordlistChoiceEl, previewEl, fileEl);
+    }
   });
  
   // leak select listeners
@@ -529,7 +550,6 @@
 
   btnClear.addEventListener('click', ()=>{
     db = [];
-    renderDB();
     clearLog();
     progressEl.value = 0;
   });
@@ -539,7 +559,6 @@
     btnStart.disabled = true;
     btnStop.disabled = false;
     clearLog();
-    await loadWordlist();
     const limit = Math.max(1, Math.min(1000000, parseInt(limitEl.value)||5000));
     const mode = attackModeEl.value;
     stopRequested = false;
@@ -566,8 +585,8 @@
   (async ()=>{
     populateAllWordlistOptions();
     // preload both attacker and leak wordlists & previews
-    await loadWordlist();
-    await loadLeakWordlist();
+    await loadWordlistGeneric({ choiceEl: wordlistChoiceEl, fileInputEl: fileEl, previewEl: previewEl, targetVar: 'wordlist' });
+    await loadWordlistGeneric({ choiceEl: leakWordlistChoiceEl, fileInputEl: leakFileEl, previewEl: leakPreviewEl, targetVar: 'leakWordlist' });
   })();
 </script>
 </body>
