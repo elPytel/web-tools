@@ -73,10 +73,7 @@
 
         <div>
           <label>Zdroj slovníku:
-            <select id="wordlistChoice">
-              <option value="builtin" selected>Vestavěný (top common)</option>
-              <option value="upload">Upload .txt</option>
-            </select>
+            <select id="wordlistChoice"></select>
           </label>
           <div id="uploadBox" style="display:none">
             <input id="wordlistFile" type="file" accept=".txt" />
@@ -147,12 +144,20 @@
   const $ = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 
-  // Built-in small common password list (for demo). In real use upload bigger list.
-  const COMMON = [
-    "123456","password","123456789","12345678","12345","qwerty","abc123","football",
-    "1234567","monkey","letmein","login","admin","welcome","princess","sunshine",
-    "iloveyou","password1","123123","qwerty123","1q2w3e4r"
-  ];
+  // Load COMMON top passwords from assets/top_common_pswd.txt
+  let COMMON = [];
+  async function loadTopCommon(){
+    try {
+      const res = await fetch('../assets/top_common_pswd.txt', { cache: 'no-store' });
+      if (!res.ok) throw new Error('top_common_pswd.txt not found');
+      const txt = await res.text();
+      COMMON = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      console.info(`Loaded top_common_pswd.txt (${COMMON.length} entries)`);
+    } catch (err) {
+      console.warn('Failed loading top_common_pswd.txt, builtin list will be empty', err);
+      COMMON = [];
+    }
+  }
 
   const numRowsEl = $('#numRows');
   const algoEl = $('#algo');
@@ -311,13 +316,36 @@
     }
   }
 
-  // ========== WORDLIST loader ==========
+  // ========== Wordlist configuration (unified) ==========
+  // Map of available wordlists: key -> { label, path }
+  // path === null means "builtin" (COMMON array). Add more entries if needed.
+  const WORDLISTS = {
+    builtin: { label: 'Vestavěný (top common)', path: null },
+    darkweb: { label: 'darkweb2017_top-10000.txt', path: '../assets/darkweb2017_top-10000.txt' }
+    // ... add more named files here if desired ...
+  };
+
+  function populateWordlistOptions(){
+    wordlistChoiceEl.innerHTML = '';
+    for (const key of Object.keys(WORDLISTS)){
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = WORDLISTS[key].label;
+      if (key === 'builtin') opt.selected = true;
+      wordlistChoiceEl.appendChild(opt);
+    }
+    // keep a final "upload" choice for custom file uploads
+    const optUpload = document.createElement('option');
+    optUpload.value = 'upload';
+    optUpload.textContent = 'Upload .txt';
+    wordlistChoiceEl.appendChild(optUpload);
+  }
+
+  // ========== WORDLIST loader (refactored to use WORDLISTS) ==========
   async function loadWordlist(){
     const choice = wordlistChoiceEl.value;
     wordlist = [];
-    if (choice === 'builtin'){
-      wordlist = COMMON.slice();
-    } else {
+    if (choice === 'upload'){
       const f = fileEl.files[0];
       if (!f) {
         alert('Nahraj .txt soubor se slovníkem (jedno heslo na řádek).');
@@ -325,129 +353,73 @@
       }
       const txt = await f.text();
       wordlist = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    } else {
+      const entry = WORDLISTS[choice];
+      if (!entry) { wordlist = []; return; }
+      if (entry.path === null){
+        // builtin -> use COMMON loaded from assets/top_common_pswd.txt
+        wordlist = COMMON.slice();
+      } else {
+        try {
+          const res = await fetch(entry.path, { cache: 'no-store' });
+          if (!res.ok) throw new Error('wordlist not found');
+          const txt = await res.text();
+          wordlist = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+        } catch (err) {
+          alert('Chyba: nepodařilo se načíst ' + (entry.path || choice) + ': ' + (err.message||err));
+          wordlist = [];
+        }
+      }
     }
     log(`Wordlist načten (${wordlist.length} položek)`);
-    // update preview to show one candidate per line
     if (previewEl) previewEl.value = wordlist.join('\n');
     return wordlist;
   }
 
-  // Update preview area: show built-in list or uploaded file content
+  // Update preview area using WORDLISTS mapping
   async function updatePreview(){
     if (!previewEl) return;
-    if (wordlistChoiceEl.value === 'builtin'){
+    const choice = wordlistChoiceEl.value;
+    if (choice === 'upload'){
+      const f = fileEl.files[0];
+      previewEl.value = f ? await f.text() : '';
+      return;
+    }
+    const entry = WORDLISTS[choice];
+    if (!entry) { previewEl.value = ''; return; }
+    if (entry.path === null){
       previewEl.value = COMMON.join('\n');
       return;
     }
-    const f = fileEl.files[0];
-    if (!f) { previewEl.value = ''; return; }
     try {
-      previewEl.value = await f.text();
+      const res = await fetch(entry.path, { cache: 'no-store' });
+      if (!res.ok) { previewEl.value = ''; return; }
+      previewEl.value = await res.text();
     } catch (e) {
       previewEl.value = '';
     }
   }
 
-  // ========== Attack routines ==========
-  async function attackBrute(limit){
-    // For each user, try up to limit candidates (iterate wordlist)
-    const algo = algoEl.value;
-    const saltMode = saltModeEl.value;
-    const saltPos = saltPosEl.value;
-    const L = Math.min(limit, wordlist.length);
-
-    let tested = 0;
-    stopRequested = false;
-    running = true;
-    progressEl.max = db.length * L;
-    progressEl.value = 0;
-
-    log(`Brute: zkouším až ${L} kandidátů z wordlistu pro každý z ${db.length} uživatelů ...`);
-
-    // iterate candidates and users; for UX better iterate candidates outermost?
-    // We'll iterate candidates outermost to allow early rainbow-like matches per pass.
-    for (let ci=0; ci<L; ci++){
-      if (stopRequested) { log('Zrušeno uživatelem'); break; }
-      const cand = wordlist[ci];
-      for (let ui=0; ui<db.length; ui++){
-        const row = db[ui];
-        if (row.cracked) { progressEl.value++; continue; }
-        // construct salted candidate per row
-        const input = (saltMode === 'per-user' && row.salt) ? (saltPos === 'prefix' ? row.salt + cand : cand + row.salt) : cand;
-        const h = await digestText(algo, input);
-        tested++;
-        if (h === row.hash){
-          row.cracked = true; row.plain = cand;
-          log(`✔ nalezen: id=${row.id} email=${row.email} pwd=${cand}`);
-          // update row in table
-          const tr = dbTableBody.querySelector(`tr[data-id="${row.id}"]`);
-          if (tr){ tr.classList.add('ok'); tr.children[5].textContent = '✅'; tr.children[6].textContent = cand; }
-        }
-        progressEl.value++;
-      }
-      // Every few iterations, yield to UI
-      if (ci % 50 === 0) await new Promise(r => setTimeout(r,0));
-    }
-    running = false;
-    log(`Brute finished. Tested ~${tested} candidate checks.`);
-  }
-
-  async function attackRainbow(limit){
-    // Precompute hash->pwd for wordlist up to limit
-    if (saltModeEl.value !== 'none'){
-      log('Pozor: rainbow tables obvykle nefungují, protože salt mění hash. Přepni salt na "none" nebo použij bruteforce.');
-    }
-    const algo = algoEl.value;
-    const L = Math.min(limit, wordlist.length);
-    const map = new Map();
-    log(`Precomputing rainbow table for ${L} candidates (algo=${algo})...`);
-    // compute mapping
-    for (let i=0;i<L;i++){
-      const pwd = wordlist[i];
-      const h = await digestText(algo, pwd);
-      map.set(h, pwd);
-      if (i % 200 === 0) await new Promise(r => setTimeout(r,0));
-    }
-    log('Hotovo: rainbow mapa připravena. Probíhá hledání v DB...');
-    // lookup
-    let found = 0;
-    for (const row of db){
-      if (stopRequested) { log('Zrušeno uživatelem'); break; }
-      if (row.cracked) continue;
-      // rainbow works only if no salt
-      if (row.salt){
-        log(`✖ přeskočeno id=${row.id} (salted)`);
-        continue;
-      }
-      const foundPwd = map.get(row.hash);
-      if (foundPwd){
-        row.cracked = true; row.plain = foundPwd;
-        const tr = dbTableBody.querySelector(`tr[data-id="${row.id}"]`);
-        if (tr){ tr.classList.add('ok'); tr.children[5].textContent = '✅'; tr.children[6].textContent = foundPwd; }
-        found++;
-        log(`✔ rainbow hit id=${row.id} email=${row.email} pwd=${foundPwd}`);
-      }
-    }
-    log(`Rainbow finished. Nalezeno: ${found}`);
-  }
-
   // ========== Controls ==========
+  // show salt options both for random per-user salt and regdate-derived salt
   saltModeEl.addEventListener('change', ()=> {
-    // show salt options both for random per-user salt and regdate-derived salt
     saltOptionsEl.style.display = (saltModeEl.value === 'per-user' || saltModeEl.value === 'regdate') ? '' : 'none';
   });
 
+  // show file-upload box only when user chooses 'upload'
   wordlistChoiceEl.addEventListener('change', ()=> {
     uploadBox.style.display = wordlistChoiceEl.value === 'upload' ? '' : 'none';
     updatePreview();
   });
+  // when a file is selected, refresh preview if upload is active
+  fileEl.addEventListener('change', ()=> {
+    if (wordlistChoiceEl.value === 'upload') updatePreview();
+  });
 
-  btnGen.addEventListener('click', async ()=>{
+  btnGen.addEventListener('click', async ()=>{ 
     btnGen.disabled = true;
     await generateDB();
-    // zajistit, že tabulka je vykreslená
     try { renderDB(); } catch(e) { /* ignore */ }
-    // posunout zobrazení na první řádek výsledků (pokud existuje)
     const firstRow = dbTableBody.querySelector('tr');
     if (firstRow) firstRow.scrollIntoView({behavior:'smooth', block:'start'});
     btnGen.disabled = false;
@@ -484,9 +456,11 @@
     log('Stop requested...');
   });
 
-  // Načíst pouze preview slovníku při startu. Generace "úniku" proběhne až po stisku
+  // Načíst top_common seznam a preview slovníku při startu. Generace "úniku" proběhne až po stisku
   // tlačítka "Generovat DB".
-  (async ()=>{ 
+  (async ()=>{
+    await loadTopCommon();
+    populateWordlistOptions();
     await updatePreview();
   })();
 </script>

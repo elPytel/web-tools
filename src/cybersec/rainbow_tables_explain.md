@@ -44,3 +44,6 @@ Rainbow tables (duhové tabulky) jsou předpočítané tabulky používané k l�
 Rainbow tables fungují hlavně proti rychlým hashům bez soli (např. MD5/SHA-1).
 Protiopatření: unikátní salt pro každé heslo + pomalá KDF (Argon2id/bcrypt/scrypt),
 což dělá předpočítávání tabulek neefektivní.
+
+## Zdroje a další čtení
+- [github: SecLists](https://github.com/danielmiessler/SecLists)
