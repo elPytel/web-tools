@@ -74,7 +74,8 @@
           "desc": "Převádí text na ASCII kódy a zpět.",
           "difficulty": "🟢",
           "path": "encoding/ASCII.html",
-          "tags": ["ascii", "znaky"]
+          "tags": ["ascii", "znaky"],
+          "hasExplain": true
         },
         {
           "id": "hexdump",

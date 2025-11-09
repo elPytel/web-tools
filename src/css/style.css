@@ -1,12 +1,10 @@
 /* ====== Společný styl pro všechny stránky ====== */
 
 :root {
-  --card-bg: #ffffff;
-  --app-bg: #f7f8fa;
-  --accent: #3b82f6;
   --radius: 12px;
   --pad: 16px;
   --shadow: 0 4px 20px rgba(0,0,0,.06);
+  --heading-color: #2f3031; /* tmavé nadpisy ve dne */
 }
 
 /* Theme variables (default = day) */
@@ -51,11 +49,6 @@ body.night {
   --code-border: #17303c;
 }
 
-/* heading color for day (default) */
-:root {
-  --heading-color: #2f3031; /* tmavé nadpisy ve dne */
-}
-
 /* Night overrides */
 body.night {
   /* světlé nadpisy v noci */
@@ -74,15 +67,6 @@ body {
   color: var(--text);
   margin: 0;
   padding: 24px;
-}
-
-.card {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  padding: var(--pad);
-  box-shadow: var(--shadow);
-  margin-bottom: 20px;
-  border: 1px solid var(--border);
 }
 
 button {
@@ -134,10 +118,63 @@ input, textarea, select {
   box-sizing: border-box;
 }
 
-/* Karty už máš (.card), jen ať nic nepřetéká */
+/* ===== Karty a panelové plochy =========================================== */
+
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: var(--pad);
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+}
+
 .card {
   overflow: hidden;
 }
+
+.card h1, .card h2, .card h3 { margin-top: 0; }
+
+/* malé infotexty */
+.muted { color: var(--muted); }
+.lead  { color: var(--muted); font-size: 1.05rem; }
+
+/* ===== Toolbar / chips ==================================================== */
+.toolbar { display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
+.chip {
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  border-radius: 999px;
+  padding: .35rem .7rem;
+  font-size: .9rem;
+  cursor: pointer;
+  user-select: none;
+}
+.chip[aria-pressed="true"] { outline: 2px solid var(--primary); }
+
+/* ===== Tlačítka =========================================================== */
+button, .btn {
+  -webkit-tap-highlight-color: transparent;
+  display: inline-flex; align-items:center; justify-content:center;
+  gap: .4rem;
+  padding: .5rem .8rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--fg);
+  cursor: pointer;
+  transition: transform .06s ease, background .12s ease, border-color .12s ease;
+}
+button:hover, .btn:hover { background: color-mix(in oklab, var(--panel-2), white 6%); }
+button:active, .btn:active { transform: translateY(1px); }
+
+.btn.primary {
+  background: var(--primary);
+  color: var(--primary-ink);
+  border-color: color-mix(in oklab, var(--primary), black 10%);
+}
+.btn.pill { border-radius: 999px; }
+
 
 /* Dva sloupce: vlevo formulář, vpravo náhled */
 .row {
@@ -201,7 +238,8 @@ input, textarea, select {
 /* (Volitelné) Globálně lepší model boxů */
 *, *::before, *::after { box-sizing: border-box; }
 
-/* md renderer */
+
+/* ===== Markdown panel (explain) ========================================== */
 .explain { margin-top: 16px }
 .explain-bar { display:flex; gap:16px; align-items:baseline; justify-content:space-between }
 #toc { font-size:13px; color: var(--muted); display:flex; gap:8px; flex-wrap:wrap }

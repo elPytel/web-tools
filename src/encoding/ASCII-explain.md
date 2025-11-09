@@ -48,8 +48,8 @@ V desítkové abecedě se s každým řádem x10 násobí počet hodnot které d
 V binární abecdě obdobně s každým dalším znakem (řádem) x2 zvětšíme počet rozlišitelných hodnot.
 
 | Počet hodnot | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
-|---|---|---|---|---|---|---|---|
-|   | 2 | 4 | 8 | 16 | 32 | 64 | 128 |
+|--------------|---|---|---|---|---|---|---|
+|              | 2 | 4 | 8 | 16 | 32 | 64 | 128 |
 
 Nejmenší větší číslo je 128.
 
@@ -61,3 +61,7 @@ Takto vznikl první dálnopisný psací stroj a s ním i ASCII kódování.
 
 ## Unicode
 ASCII kódování je omezené na 128 znaků, což je nedostatečné pro pokrytí všech světových jazyků a speciálních symbolů. Proto byl vyvinut Unicode, který rozšiřuje počet znaků na více než 1 milion pomocí různých kódovacích schémat, jako je UTF-8, UTF-16 a UTF-32.
+
+## Zdroje:
+- [ASCII - Wikipedia](https://cs.wikipedia.org/wiki/ASCII)
+- [Computerphile: Characters, Symbols and the Unicode Miracle](https://www.youtube.com/watch?v=MijmeoH9LT4)

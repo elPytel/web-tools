@@ -11,33 +11,19 @@
 
     /* explicit theme classes set by js/theme.js (takes precedence) */
     body.day {
-      --card-bg:#fff;
       --card-border:#d7e1ee;
       --muted:#556981;
       --hover:#eef5ff;
     }
     body.night {
-      --card-bg:#111a22;
       --card-border:#223142;
       --muted:#8aa0b2;
       --hover:#0f2238;
     }
-
-    /* keep the prefers-color-scheme fallback for browsers without theme toggling */
-    @media (prefers-color-scheme: light){
-      :root { --card-bg:#fff; --card-border:#d7e1ee; --muted:#556981; --hover:#eef5ff; }
-    }
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; max-width:1100px; margin:3rem auto; padding:1rem; }
-    /* header layout: top row with title on left and controls on right */
-    header { margin-bottom:1rem; }
-    .header-top { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
-    .header-left { display:flex; flex-direction:column; }
-    .lead { color: var(--muted); }
 
-    .toolbar { display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin-top:.25rem }
     .search { flex:1 1 320px; min-width:220px; border:1px solid var(--card-border); border-radius:10px; padding:.6rem .8rem; background:var(--card-bg) }
   .chip { border:1px solid var(--card-border); border-radius:999px; padding:.35rem .7rem; font-size:.9rem; background:var(--card-bg); cursor:pointer; user-select:none }
-  .chip[aria-pressed="true"] { background:#1b2a40 }
   /* Theme-aware chip pressed state (overrides when theme.js sets body.day/night) */
   body.day .chip[aria-pressed="true"] { background:#eef5ff }
   body.night .chip[aria-pressed="true"] { background:#1b2a40 }
