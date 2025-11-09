@@ -73,3 +73,65 @@ export function computeRateAndHashTime({ mode='manual', rate=1, ghz=0, instr=1, 
   }
   return { rate: Math.max(1, Number.parseFloat(rate)||1), perHashSec: null };
 }
+
+// ========== Wordlist configuration (unified) ==========
+  // Map of available wordlists: key -> { label, path }
+export const WORDLISTS = {
+  builtin: { label: 'Vestavěný (top common)', path: '../assets/top_common_pswd.txt' },
+  darkweb: { label: 'darkweb2017 top: 10000', path: '../assets/darkweb2017_top-10000.txt' },
+  nordpass: { label: 'nordpass top: 200', path: '../assets/nordpass_top-200.txt' }
+};
+
+/**
+ * digestText(algo, text)
+ * - supports 'MD5' (SparkMD5.hash global), 'SHA-1', 'SHA-256'
+ */
+export async function digestText(algo, text){
+  algo = String(algo || '').toUpperCase();
+  if (algo === 'MD5'){
+    if (typeof SparkMD5 === 'undefined') throw new Error('SparkMD5 not available');
+    return SparkMD5.hash(text);
+  } else {
+    const enc = new TextEncoder();
+    const buf = enc.encode(text);
+    const h = await crypto.subtle.digest(algo, buf);
+    return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+}
+
+export function randHex(len){
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+export function randEmail(){
+  const u = Math.random().toString(36).slice(2,9);
+  const domain = ['gmail.com','seznam.cz','hotmail.com','company.com'][Math.floor(Math.random()*4)];
+  return `${u}@${domain}`;
+}
+
+export function randDate(){
+  const start = new Date(2015,0,1).getTime();
+  const end = Date.now();
+  const d = new Date(start + Math.floor(Math.random()*(end-start)));
+  return d.toISOString().slice(0,10);
+}
+
+/**
+ * makeSalt(len, regdate, mode)
+ * - len: number of bytes (hex length = 2*len)
+ * - regdate: optional string (ISO date) used when mode === 'regdate'
+ * - mode: 'random' (default) or 'regdate'
+ */
+export function makeSalt(len, regdate=null, mode='random'){
+  if (mode === 'regdate' && regdate){
+    let h = (typeof SparkMD5 !== 'undefined') ? SparkMD5.hash(String(regdate)) : '';
+    const needed = len*2;
+    while (h.length < needed) h = h + h;
+    return h.slice(0, needed);
+  }
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
