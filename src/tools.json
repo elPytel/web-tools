@@ -51,14 +51,22 @@
           "difficulty": "🟢",
           "path": "crypto/Morse_code.html",
           "tags": ["šifra", "morse", "zvuk"]
-        },
+        }
+      ]
+    },
+    {
+      "id": "analysis",
+      "name": "🧠 Analýza textu",
+      "chip": "🧠 Analýza",
+      "color": "#f59e0b",
+      "tools": [
         {
-          "id": "hash",
-          "name": "Checksum / Hash demo",
-          "desc": "Spočítá hash (MD5, SHA-1, SHA-256) a ukáže rozdíl po změně znaku.",
+          "id": "analyzer",
+          "name": "Textový analyzátor",
+          "desc": "Počet slov, znaků, frekvence písmen, export CSV.",
           "difficulty": "🟡",
-          "path": "crypto/hashing.html",
-          "tags": ["hash", "checksum"]
+          "path": "text_analyzer.html",
+          "tags": ["text", "frekvence", "statistika"]
         }
       ]
     },
@@ -96,18 +104,36 @@
       ]
     },
     {
-      "id": "analysis",
-      "name": "🧠 Analýza textu",
-      "chip": "🧠 Analýza",
-      "color": "#f59e0b",
+      "id": "cybersec",
+      "name": "🛡️ Kybernetická bezpečnost",
+      "chip": "🛡️ Cybersec",
+      "color": "#ef4444",
       "tools": [
         {
-          "id": "analyzer",
-          "name": "Textový analyzátor",
-          "desc": "Počet slov, znaků, frekvence písmen, export CSV.",
+          "id": "password_generator",
+          "name": "Generátor hesel",
+          "desc": "Vygeneruje silná náhodná hesla podle zadaných parametrů.",
+          "difficulty": "🟢",
+          "path": "cybersec/password_generator.html",
+          "tags": ["heslo", "generátor", "náhodné"],
+          "hasExplain": true
+        },
+        {
+          "id": "hash",
+          "name": "Checksum / Hash demo",
+          "desc": "Spočítá hash (MD5, SHA-1, SHA-256) a ukáže rozdíl po změně znaku.",
           "difficulty": "🟡",
-          "path": "text_analyzer.html",
-          "tags": ["text", "frekvence", "statistika"]
+          "path": "cybersec/hashing.html",
+          "tags": ["hash", "checksum"]
+        },
+        {
+          "id": "rainbow_tables",
+          "name": "Rainbow tables demo",
+          "desc": "Ukázka lámání zaheshovaných hesel a rainbow tables.",
+          "difficulty": "🟠",
+          "path": "cybersec/rainbow_tables.html",
+          "tags": ["hash", "rainbow", "lámání hesel"],
+          "hasExplain": true
         }
       ]
     },
