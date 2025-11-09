@@ -15,12 +15,9 @@
     table { width:100%; border-collapse: collapse; }
     table th, table td { padding:6px 8px; border-bottom:1px solid var(--border); font-size:14px; }
     .console { background: var(--panel-2); padding:8px; border-radius:8px; max-height:220px; overflow:auto; font-family: ui-monospace, monospace; font-size:13px; }
-    .muted { color: var(--muted); }
     .ok { background: linear-gradient(90deg, rgba(16,185,129,0.08), rgba(16,185,129,0.02)); }
     .danger { background: linear-gradient(90deg, rgba(239,68,68,0.06), rgba(239,68,68,0.02)); }
     progress { width:100%; height:14px; }
-    .small { font-size:0.9rem; color:var(--muted) }
-    .pill { border-radius:999px; padding:6px 10px }
     .flex-between { display:flex; justify-content:space-between; align-items:center; gap:12px; }
   </style>
   <!-- SparkMD5 UMD build (exposes global SparkMD5.hash) -->
@@ -31,78 +28,93 @@
     <script type="module" src="../js/site-header.js"></script>
     <site-header title="🔓 Rainbow / Password cracking playground"></site-header>
 
+    <!-- DB leak configuration card -->
     <section class="card">
       <h2>Simulovaný únik DB – konfigurace</h2>
-      <div class="grid2">
-        <div id="configPanel" class="config-col">
-          <label>Počet záznamů:
-            <input id="numRows" type="number" min="1" max="500" value="20" class="small-input">
+      <div id="configPanel" class="config-col" style="max-width:560px">
+        <label>Počet záznamů:
+          <input id="numRows" type="number" min="1" max="500" value="20" class="small-input">
+        </label>
+        <label>Algoritmus hashe:
+          <select id="algo">
+            <option value="MD5" selected>MD5 (ilustrativně)</option>
+            <option value="SHA-1">SHA-1</option>
+            <option value="SHA-256">SHA-256</option>
+          </select>
+        </label>
+        <label>Salt:
+          <select id="saltMode">
+            <option value="none" selected>Žádný</option>
+            <option value="per-user">Per-user random salt</option>
+            <option value="regdate">Odvozená z datumu registrace</option>
+          </select>
+        </label>
+        <div class="row" id="saltOptions" style="display:none">
+          <label>Salt umístění:
+            <select id="saltPos"><option value="suffix">Suffix</option><option value="prefix">Prefix</option></select>
           </label>
-          <label>Algoritmus hashe:
-            <select id="algo">
-              <option value="MD5" selected>MD5 (ilustrativně)</option>
-              <option value="SHA-1">SHA-1</option>
-              <option value="SHA-256">SHA-256</option>
-            </select>
-          </label>
-          <label>Salt:
-            <select id="saltMode">
-              <option value="none" selected>Žádný</option>
-              <option value="per-user">Per-user random salt</option>
-              <option value="regdate">Odvozená z datumu registrace</option>
-            </select>
-          </label>
-          <div class="row" id="saltOptions" style="display:none">
-            <label>Salt délka:
-              <input id="saltLen" type="number" min="4" max="32" value="8" class="small-input">
-            </label>
-            <label>Salt umístění:
-              <select id="saltPos"><option value="suffix">Suffix</option><option value="prefix">Prefix</option></select>
-            </label>
-          </div>
-
-          <div style="margin-top:12px" class="small muted">
-            Poznámka: Rainbow tables většinou nefungují při použití saltů. Tato simulace ilustruje oba přístupy.
-          </div>
-
-          <div style="margin-top:12px">
-            <button id="btnGen" class="btn primary">Generovat DB</button>
-            <button id="btnClear" class="btn">Vyčistit</button>
-          </div>
         </div>
 
-        <div>
-          <label>Zdroj slovníku:
-            <select id="wordlistChoice"></select>
+        <div style="margin-top:12px" class="small muted">
+          Poznámka: Rainbow tables většinou nefungují při použití saltů. Tato simulace ilustruje oba přístupy.
+        </div>
+
+        <div style="margin-top:12px">
+          <button id="btnGen" class="btn primary">Generovat DB</button>
+          <button id="btnClear" class="btn">Vyčistit</button>
+        </div>
+        <!-- Leak wordlist controls: independent source for passwords used in the leaked DB -->
+        <div style="margin-top:12px; border-top:1px solid var(--border); padding-top:10px;">
+          <label style="font-weight:600; display:block; margin-bottom:6px">Zdroj slovníku pro unik (hesla v uniklé DB):</label>
+          <label>Zdroj slovníku: 
+            <select id="leakWordlistChoice"></select>
           </label>
-          <div id="uploadBox" style="display:none">
-            <input id="wordlistFile" type="file" accept=".txt" />
+          <div id="leakUploadBox" style="display:none; margin-top:6px;">
+            <input id="leakWordlistFile" type="file" accept=".txt" />
             <div class="small muted">Soubor: jeden kandidát na řádek.</div>
           </div>
+          <label style="margin-top:6px">Náhled slovníku (unik):</label>
+          <textarea id="leakWordlistPreview" readonly class="small-input" style="width:100%; min-height:80px; margin-top:6px;"></textarea>
+        </div>
+      </div>
+    </section>
 
-          <label>Náhled slovníku:
-            <textarea id="wordlistPreview" readonly class="small-input" style="width:100%; min-height:140px; margin-top:6px;"></textarea>
-          </label>
+    <!-- Attack / cracking configuration card -->
+    <section class="card">
+      <h2>Útočník - lámání hesel</h2>
+      <div style="display:flex; flex-direction:column; gap:10px; max-width:680px;">
+        <label>Zdroj slovníku:
+          <select id="wordlistChoice"></select>
+        </label>
+        <div id="uploadBox" style="display:none">
+          <input id="wordlistFile" type="file" accept=".txt" />
+          <div class="small muted">Soubor: jeden kandidát na řádek.</div>
+        </div>
 
-          <label>Počet zkoušených kandidátů (z wordlistu) / limit:
-            <input id="limit" type="number" min="1" max="1000000" value="5000" class="small-input">
-          </label>
+        <label>Náhled slovníku (lámání):
+          <textarea id="wordlistPreview" readonly class="small-input" style="width:100%; min-height:140px; margin-top:6px;"></textarea>
+        </label>
 
-          <label>Útočný režim:
-            <select id="attackMode">
-              <option value="bruteforce" selected>Brute-force přes wordlist (per-user)</option>
-              <option value="rainbow">Rainbow table (precompute hash→pwd)</option>
-            </select>
-          </label>
+        <label>Počet zkoušených kandidátů (z wordlistu) / limit:
+          <input id="limit" type="number" min="1" max="1000000" value="5000" class="small-input">
+        </label>
 
-          <div style="margin-top:8px" class="row">
-            <button id="btnStart" class="btn primary">▶ Spustit útok</button>
-            <button id="btnStop" class="btn">■ Zastavit</button>
-          </div>
+        <label>Útočný režim:
+          <select id="attackMode">
+            <option value="bruteforce" selected>Brute-force</option>
+            <option value="wordlist" selected>Wordlist</option>
+            <option value="wordlist_salted" selected>Wordlist + salt</option>
+            <option value="rainbow">Rainbow table (precompute hash→pwd)</option>
+          </select>
+        </label>
 
-          <div style="margin-top:8px">
-            <div class="small muted">Zobrazený progres reflektuje počet testovaných kandidátů.</div>
-          </div>
+        <div style="margin-top:8px" class="row">
+          <button id="btnStart" class="btn primary">▶ Spustit útok</button>
+          <button id="btnStop" class="btn">■ Zastavit</button>
+        </div>
+
+        <div style="margin-top:8px">
+          <div class="small muted">Zobrazený progres reflektuje počet testovaných kandidátů.</div>
         </div>
       </div>
     </section>
@@ -117,7 +129,7 @@
         <table id="dbTable" role="table">
           <thead>
             <tr>
-              <th>#</th><th>Email</th><th>Hash</th><th>Salt</th><th>Reg date</th><th>Cracked?</th><th>Plain</th>
+              <th>#</th><th>Email</th><th>Hash</th><th>Reg date</th><th>Cracked?</th><th>Plain</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -138,26 +150,14 @@
   <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/lib/common.min.js"></script>
 
 <script type="module">
-  // Rainbow / cracking playground
-  // (SparkMD5 is loaded as a UMD global via script tag; use SparkMD5.hash)
 
   const $ = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 
-  // Load COMMON top passwords from assets/top_common_pswd.txt
-  let COMMON = [];
-  async function loadTopCommon(){
-    try {
-      const res = await fetch('../assets/top_common_pswd.txt', { cache: 'no-store' });
-      if (!res.ok) throw new Error('top_common_pswd.txt not found');
-      const txt = await res.text();
-      COMMON = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-      console.info(`Loaded top_common_pswd.txt (${COMMON.length} entries)`);
-    } catch (err) {
-      console.warn('Failed loading top_common_pswd.txt, builtin list will be empty', err);
-      COMMON = [];
-    }
-  }
+  import {loadWordlistFromPath, digestText, makeSalt, randHex, randEmail, randDate, WORDLISTS } from '../js/cybersec.js';
+
+  // leak-specific wordlist state (used for generating leaked DB pool)
+  let leakWordlist = [];
 
   const numRowsEl = $('#numRows');
   const algoEl = $('#algo');
@@ -171,6 +171,10 @@
   const uploadBox = $('#uploadBox');
   const fileEl = $('#wordlistFile');
   const previewEl = $('#wordlistPreview');
+  const leakWordlistChoiceEl = $('#leakWordlistChoice');
+  const leakUploadBox = $('#leakUploadBox');
+  const leakFileEl = $('#leakWordlistFile');
+  const leakPreviewEl = $('#leakWordlistPreview');
   const limitEl = $('#limit');
   const attackModeEl = $('#attackMode');
 
@@ -200,60 +204,6 @@
 
   function clearLog(){ consoleEl.innerHTML = ''; }
 
-  function randHex(len){
-    const bytes = new Uint8Array(len);
-    crypto.getRandomValues(bytes);
-    return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
-  }
-
-  /**
-   * makeSalt(len, regdate, mode)
-   * - len: number of bytes (hex length = 2*len)
-   * - regdate: optional string (ISO date) used when mode === 'regdate'
-   * - mode: 'random' (default) or 'regdate'
-   */
-  function makeSalt(len, regdate=null, mode='random'){
-    if (mode === 'regdate' && regdate){
-      // deterministic salt derived from registration date
-      // produce hex string; SparkMD5.hash returns hex chars
-      let h = SparkMD5.hash(String(regdate));
-      // repeat / pad if needed to reach requested byte length (2*len hex chars)
-      const needed = len*2;
-      while (h.length < needed) h = h + h;
-      return h.slice(0, needed);
-    }
-    // fallback: random hex of len bytes
-    const bytes = new Uint8Array(len);
-    crypto.getRandomValues(bytes);
-    return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
-  }
-
-  function randEmail(){
-    const u = Math.random().toString(36).slice(2,9);
-    const domain = ['gmail.com','seznam.cz','hotmail.com','company.com'][Math.floor(Math.random()*4)];
-    return `${u}@${domain}`;
-  }
-  function randDate(){
-    const start = new Date(2015,0,1).getTime();
-    const end = Date.now();
-    const d = new Date(start + Math.floor(Math.random()*(end-start)));
-    return d.toISOString().slice(0,10);
-  }
-
-  async function digestText(algo, text){
-    algo = algo.toUpperCase();
-    if (algo === 'MD5'){
-      // use SparkMD5 global (UMD)
-      return SparkMD5.hash(text);
-    } else {
-      const enc = new TextEncoder();
-      const buf = enc.encode(text);
-      const name = algo; // 'SHA-1' or 'SHA-256'
-      const h = await crypto.subtle.digest(name, buf);
-      return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');
-    }
-  }
-
   // ========== DB generation ==========
   async function generateDB(){
     // reset
@@ -266,21 +216,24 @@
     const n = Math.max(1, Math.min(500, parseInt(numRowsEl.value)||20));
     const algo = algoEl.value;
     const saltMode = saltModeEl.value;
-    const saltLen = Math.max(4, Math.min(32, parseInt(saltLenEl.value)||8));
+    const saltLen = 8;
     log(`Generuji ${n} záznamů (algo=${algo}, salt=${saltMode}${saltMode!=='none'?` len=${saltLen} pos=${saltPosEl.value}`:''})`);
-
-    // use a pool of actual passwords to create realistic hashes (so cracking possible)
-    const pool = [
-      ...COMMON,
-      'Anicka12Facebook!','Pepa97','Xvql!12s','letmein123','qwerty!','iloveyou1','S3krit!'
-    ];
-
+    
+    let numberOfRandomPasswords = 0;
     for (let i=0;i<n;i++){
       const email = randEmail();
       // generate regdate before salt if salt may be derived from it
       const regdate = randDate();
       // pick a password from pool mostly (to allow cracking)
-      const pwd = Math.random() < 0.8 ? pool[Math.floor(Math.random()*pool.length)] : (Math.random().toString(36).slice(2,10));
+      let pwd = ""
+      if (Math.random() < 0.8) {
+        pwd = leakWordlist[Math.floor(Math.random()*leakWordlist.length)]
+      } else {
+        // random pwd (not in pool)
+        pwd = Math.random().toString(36).slice(2,10);
+        numberOfRandomPasswords++; 
+      }
+      
       let salt = '';
       if (saltMode === 'per-user'){
         salt = makeSalt(saltLen, null, 'random');
@@ -295,6 +248,7 @@
 
     renderDB();
     log('Hotovo – DB vygenerována. Některé hesla jsou z běžných seznamů (proveditelné).');
+    log(`${numberOfRandomPasswords}/${n} hesel je náhodných.`);
   }
 
   function renderDB(){
@@ -307,7 +261,6 @@
         <td>${row.id}</td>
         <td>${row.email}</td>
         <td style="font-family: ui-monospace">${row.hash}</td>
-        <td style="font-family: ui-monospace">${row.salt || '—'}</td>
         <td>${row.regdate}</td>
         <td>${row.cracked ? '✅' : ''}</td>
         <td style="font-family: ui-monospace">${row.plain || ''}</td>
@@ -316,32 +269,30 @@
     }
   }
 
-  // ========== Wordlist configuration (unified) ==========
-  // Map of available wordlists: key -> { label, path }
-  // path === null means "builtin" (COMMON array). Add more entries if needed.
-  const WORDLISTS = {
-    builtin: { label: 'Vestavěný (top common)', path: null },
-    darkweb: { label: 'darkweb2017_top-10000.txt', path: '../assets/darkweb2017_top-10000.txt' }
-    // ... add more named files here if desired ...
-  };
-
-  function populateWordlistOptions(){
-    wordlistChoiceEl.innerHTML = '';
+  // Populate wordlist select(s) from WORDLISTS mapping.
+  // If el parameter is omitted, populate attacker select; otherwise populate provided element.
+  function populateWordlistOptions(el){
+    const target = el || wordlistChoiceEl;
+    target.innerHTML = '';
     for (const key of Object.keys(WORDLISTS)){
       const opt = document.createElement('option');
       opt.value = key;
       opt.textContent = WORDLISTS[key].label;
       if (key === 'builtin') opt.selected = true;
-      wordlistChoiceEl.appendChild(opt);
+      target.appendChild(opt);
     }
-    // keep a final "upload" choice for custom file uploads
     const optUpload = document.createElement('option');
     optUpload.value = 'upload';
     optUpload.textContent = 'Upload .txt';
-    wordlistChoiceEl.appendChild(optUpload);
+    target.appendChild(optUpload);
   }
 
-  // ========== WORDLIST loader (refactored to use WORDLISTS) ==========
+  // helper to populate both attacker and leak selects
+  function populateAllWordlistOptions(){
+    populateWordlistOptions(wordlistChoiceEl);
+    populateWordlistOptions(leakWordlistChoiceEl);
+  }
+
   async function loadWordlist(){
     const choice = wordlistChoiceEl.value;
     wordlist = [];
@@ -356,10 +307,7 @@
     } else {
       const entry = WORDLISTS[choice];
       if (!entry) { wordlist = []; return; }
-      if (entry.path === null){
-        // builtin -> use COMMON loaded from assets/top_common_pswd.txt
-        wordlist = COMMON.slice();
-      } else {
+      else {
         try {
           const res = await fetch(entry.path, { cache: 'no-store' });
           if (!res.ok) throw new Error('wordlist not found');
@@ -376,28 +324,171 @@
     return wordlist;
   }
 
-  // Update preview area using WORDLISTS mapping
-  async function updatePreview(){
-    if (!previewEl) return;
-    const choice = wordlistChoiceEl.value;
+  // load leak-specific wordlist (used for generování uniklé DB)
+  async function loadLeakWordlist(){
+    const choice = leakWordlistChoiceEl.value;
+    leakWordlist = [];
     if (choice === 'upload'){
-      const f = fileEl.files[0];
+      const f = leakFileEl.files[0];
+      leakPreviewEl.value = f ? await f.text() : '';
+      if (!f) return leakWordlist;
+      leakWordlist = (await f.text()).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    } else {
+      const entry = WORDLISTS[choice];
+      if (!entry) { leakWordlist = []; }
+      else {
+        try {
+          const res = await fetch(entry.path, { cache: 'no-store' });
+          if (!res.ok) throw new Error('wordlist not found');
+          const txt = await res.text();
+          leakWordlist = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+          leakPreviewEl.value = leakWordlist.join('\n');
+        } catch (err) {
+          alert('Chyba: nepodařilo se načíst ' + (entry.path || choice) + ': ' + (err.message||err));
+          leakWordlist = [];
+          leakPreviewEl.value = '';
+        }
+      }
+    }
+    log(`Leak wordlist načten (${leakWordlist.length} položek)`);
+    return leakWordlist;
+  }
+
+  // ========== Leak wordlist loader/preview ==========
+
+
+  // Unified preview updater for both attacker and leak previews
+  // selectEl: the <select> element (wordlistChoiceEl or leakWordlistChoiceEl)
+  // previewEl: the textarea element to fill
+  // fileInputEl: optional file input to read when "upload" selected
+  async function updatePreviewFor(selectEl, previewEl, fileInputEl = null) {
+    if (!previewEl || !selectEl) return;
+    const choice = selectEl.value;
+    if (choice === 'upload') {
+      const f = fileInputEl ? fileInputEl.files[0] : null;
       previewEl.value = f ? await f.text() : '';
       return;
     }
     const entry = WORDLISTS[choice];
     if (!entry) { previewEl.value = ''; return; }
-    if (entry.path === null){
-      previewEl.value = COMMON.join('\n');
-      return;
-    }
     try {
-      const res = await fetch(entry.path, { cache: 'no-store' });
-      if (!res.ok) { previewEl.value = ''; return; }
-      previewEl.value = await res.text();
+      previewEl.value = (await loadWordlistFromPath(entry.path)).join('\n');
     } catch (e) {
       previewEl.value = '';
     }
+  }
+
+  // ========== Attack routines ==========
+
+  async function attackBrute(limit){
+    // Not implemented — show informative alert.
+    alert('Bruteforce útok není implementován v této verzi.');
+  }
+
+  async function attackWordList(limit){
+    const algo = algoEl.value;
+    const saltMode = saltModeEl.value;
+    const saltPos = saltPosEl.value;
+    const L = Math.min(limit, wordlist.length);
+    let tested = 0;
+    stopRequested = false;
+    running = true;
+    progressEl.max = db.length * Math.max(1, L);
+    progressEl.value = 0;
+    log(`Wordlist: zkouším až ${L} kandidátů pro každý záznam z ${db.length} uživatelů ...`);
+    for (let ci=0; ci<L; ci++){
+      if (stopRequested) { log('Zrušeno uživatelem'); break; }
+      const cand = wordlist[ci];
+      log(`Zkouším kandidáta #${ci+1}/${L}: "${cand}"`);
+      const hashedCandidate = await digestText(algo, cand);
+      for (let ui=0; ui<db.length; ui++){
+        const row = db[ui];
+        if (row.cracked) { progressEl.value++; continue; }
+        tested++;
+        if (hashedCandidate === row.hash){
+          row.cracked = true; row.plain = cand;
+          log(`✔ nalezen: id=${row.id} email=${row.email} pwd=${cand}`);
+          const tr = dbTableBody.querySelector(`tr[data-id="${row.id}"]`);
+          if (tr){ tr.classList.add('ok'); tr.children[4].textContent = '✅'; tr.children[5].textContent = cand; }
+        }
+        progressEl.value++;
+      }
+      if (ci % 50 === 0) await new Promise(r => setTimeout(r,0));
+    }
+    running = false;
+    log(`Wordlist finished. Tested ~${tested} candidate checks.`);
+  }
+
+  async function attackWordListSalted(limit){
+    const algo = algoEl.value;
+    const saltMode = saltModeEl.value;
+    const saltPos = saltPosEl.value;
+    const L = Math.min(limit, wordlist.length);
+    let tested = 0;
+    stopRequested = false;
+    running = true;
+    progressEl.max = db.length * Math.max(1, L);
+    progressEl.value = 0;
+    log(`Wordlist salted: zkouším až ${L} kandidátů z wordlistu pro každý z ${db.length} uživatelů ...`);
+    for (let ci=0; ci<L; ci++){
+      if (stopRequested) { log('Zrušeno uživatelem'); break; }
+      const cand = wordlist[ci];
+      log(`Zkouším kandidáta #${ci+1}/${L}: "${cand}"`);
+      for (let ui=0; ui<db.length; ui++){
+        const row = db[ui];
+        if (row.cracked) { progressEl.value++; continue; }
+        
+        const saltedInput = (saltPos === 'prefix') ? (row.salt + cand) : (cand + row.salt);
+        log(`Salted input for id=${row.id}: "${saltedInput}"`);
+        const hashedCandidateSalted = await digestText(algo, saltedInput);
+        
+        tested++;
+        if (hashedCandidateSalted === row.hash){
+          row.cracked = true; row.plain = cand;
+          log(`✔ nalezen: id=${row.id} email=${row.email} pwd=${cand}`);
+          const tr = dbTableBody.querySelector(`tr[data-id="${row.id}"]`);
+          if (tr){ tr.classList.add('ok'); tr.children[4].textContent = '✅'; tr.children[5].textContent = cand; }
+        }
+        progressEl.value++;
+      }
+      if (ci % 50 === 0) await new Promise(r => setTimeout(r,0));
+    }
+    running = false;
+    log(`Wordlist salted finished. Tested ~${tested} candidate checks.`);
+  }
+
+  async function attackRainbow(limit){
+    if (saltModeEl.value !== 'none'){
+      log('Pozor: rainbow tables obvykle nefungují, protože salt mění hash. Přepni salt na "none" nebo použij bruteforce.');
+    }
+    const algo = algoEl.value;
+    const L = Math.min(limit, wordlist.length);
+    const map = new Map();
+    log(`Precomputing rainbow table for ${L} candidates (algo=${algo})...`);
+    for (let i=0;i<L;i++){
+      const pwd = wordlist[i];
+      const h = await digestText(algo, pwd);
+      map.set(h, pwd);
+      if (i % 200 === 0) await new Promise(r => setTimeout(r,0));
+    }
+    log('Hotovo: rainbow mapa připravena. Probíhá hledání v DB...');
+    let found = 0;
+    for (const row of db){
+      if (stopRequested) { log('Zrušeno uživatelem'); break; }
+      if (row.cracked) continue;
+      if (row.salt){
+        log(`✖ přeskočeno id=${row.id} (salted)`);
+        continue;
+      }
+      const foundPwd = map.get(row.hash);
+      if (foundPwd){
+        row.cracked = true; row.plain = foundPwd; found++;
+        const tr = dbTableBody.querySelector(`tr[data-id="${row.id}"]`);
+        if (tr){ tr.classList.add('ok'); tr.children[4].textContent = '✅'; tr.children[5].textContent = foundPwd; }
+        log(`✔ rainbow hit id=${row.id} email=${row.email} pwd=${foundPwd}`);
+      }
+    }
+    log(`Rainbow finished. Nalezeno: ${found}`);
   }
 
   // ========== Controls ==========
@@ -405,25 +496,37 @@
   saltModeEl.addEventListener('change', ()=> {
     saltOptionsEl.style.display = (saltModeEl.value === 'per-user' || saltModeEl.value === 'regdate') ? '' : 'none';
   });
-
+ 
   // show file-upload box only when user chooses 'upload'
   wordlistChoiceEl.addEventListener('change', ()=> {
     uploadBox.style.display = wordlistChoiceEl.value === 'upload' ? '' : 'none';
-    updatePreview();
+    updatePreviewFor(wordlistChoiceEl, previewEl, fileEl);
   });
   // when a file is selected, refresh preview if upload is active
   fileEl.addEventListener('change', ()=> {
-    if (wordlistChoiceEl.value === 'upload') updatePreview();
+    if (wordlistChoiceEl.value === 'upload') updatePreviewFor(wordlistChoiceEl, previewEl, fileEl);
+  });
+ 
+  // leak select listeners
+  leakWordlistChoiceEl.addEventListener('change', async ()=> {
+    leakUploadBox.style.display = leakWordlistChoiceEl.value === 'upload' ? '' : 'none';
+    await loadLeakWordlist();
+  });
+  leakFileEl.addEventListener('change', async ()=> {
+    if (leakWordlistChoiceEl.value === 'upload') await loadLeakWordlist();
   });
 
   btnGen.addEventListener('click', async ()=>{ 
     btnGen.disabled = true;
+    // ensure leak wordlist is loaded before generating DB
+    await loadLeakWordlist();
     await generateDB();
     try { renderDB(); } catch(e) { /* ignore */ }
     const firstRow = dbTableBody.querySelector('tr');
     if (firstRow) firstRow.scrollIntoView({behavior:'smooth', block:'start'});
     btnGen.disabled = false;
   });
+
   btnClear.addEventListener('click', ()=>{
     db = [];
     renderDB();
@@ -440,10 +543,14 @@
     const limit = Math.max(1, Math.min(1000000, parseInt(limitEl.value)||5000));
     const mode = attackModeEl.value;
     stopRequested = false;
-    if (mode === 'bruteforce') {
-      await attackBrute(limit);
-    } else {
+    if (mode === 'rainbow') {
       await attackRainbow(limit);
+    } else if (mode === 'wordlist') {
+      await attackWordList(limit);
+    } else if (mode === 'wordlist_salted') {
+      await attackWordListSalted(limit);
+    } else {
+      await attackBrute(limit);
     }
     btnStart.disabled = false;
     btnStop.disabled = true;
@@ -455,13 +562,12 @@
     btnStop.disabled = true;
     log('Stop requested...');
   });
-
-  // Načíst top_common seznam a preview slovníku při startu. Generace "úniku" proběhne až po stisku
-  // tlačítka "Generovat DB".
+  // ========== Initialization ==========
   (async ()=>{
-    await loadTopCommon();
-    populateWordlistOptions();
-    await updatePreview();
+    populateAllWordlistOptions();
+    // preload both attacker and leak wordlists & previews
+    await loadWordlist();
+    await loadLeakWordlist();
   })();
 </script>
 </body>

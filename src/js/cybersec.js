@@ -82,6 +82,12 @@ export const WORDLISTS = {
   nordpass: { label: 'nordpass top: 200', path: '../assets/nordpass_top-200.txt' }
 };
 
+export function loadWordlistFromPath(path){
+  return fetch(path)
+    .then(resp => resp.text())
+    .then(text => text.split(/\r?\n/).filter(line => line.trim() !== ''));
+}
+
 /**
  * digestText(algo, text)
  * - supports 'MD5' (SparkMD5.hash global), 'SHA-1', 'SHA-256'
