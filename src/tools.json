@@ -124,7 +124,8 @@
           "desc": "Spočítá hash (MD5, SHA-1, SHA-256) a ukáže rozdíl po změně znaku.",
           "difficulty": "🟡",
           "path": "cybersec/hashing.html",
-          "tags": ["hash", "checksum"]
+          "tags": ["hash", "checksum"],
+          "hasExplain": true
         },
         {
           "id": "rainbow_tables",
