@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8"/>
+  <title>🔓 Rainbow / Password cracking playground</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .grid2 { display:grid; gap:12px; grid-template-columns: 1fr 1fr; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    /* nový styl: vertikální konfigurace */
+    .config-col { display:flex; flex-direction:column; gap:10px; }
+    .config-col label { display:block; }
+    textarea { width:100%; min-height:120px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    table { width:100%; border-collapse: collapse; }
+    table th, table td { padding:6px 8px; border-bottom:1px solid var(--border); font-size:14px; }
+    .console { background: var(--panel-2); padding:8px; border-radius:8px; max-height:220px; overflow:auto; font-family: ui-monospace, monospace; font-size:13px; }
+    .muted { color: var(--muted); }
+    .ok { background: linear-gradient(90deg, rgba(16,185,129,0.08), rgba(16,185,129,0.02)); }
+    .danger { background: linear-gradient(90deg, rgba(239,68,68,0.06), rgba(239,68,68,0.02)); }
+    progress { width:100%; height:14px; }
+    .small { font-size:0.9rem; color:var(--muted) }
+    .pill { border-radius:999px; padding:6px 10px }
+    .flex-between { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  </style>
+  <!-- SparkMD5 UMD build (exposes global SparkMD5.hash) -->
+  <script src="https://cdn.jsdelivr.net/npm/spark-md5@3.0.2/spark-md5.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <script type="module" src="../js/site-header.js"></script>
+    <site-header title="🔓 Rainbow / Password cracking playground"></site-header>
+
+    <section class="card">
+      <h2>Simulovaný únik DB – konfigurace</h2>
+      <div class="grid2">
+        <div id="configPanel" class="config-col">
+          <label>Počet záznamů:
+            <input id="numRows" type="number" min="1" max="500" value="20" class="small-input">
+          </label>
+          <label>Algoritmus hashe:
+            <select id="algo">
+              <option value="MD5" selected>MD5 (ilustrativně)</option>
+              <option value="SHA-1">SHA-1</option>
+              <option value="SHA-256">SHA-256</option>
+            </select>
+          </label>
+          <label>Salt:
+            <select id="saltMode">
+              <option value="none" selected>Žádný</option>
+              <option value="per-user">Per-user random salt</option>
+              <option value="regdate">Odvozená z datumu registrace</option>
+            </select>
+          </label>
+          <div class="row" id="saltOptions" style="display:none">
+            <label>Salt délka:
+              <input id="saltLen" type="number" min="4" max="32" value="8" class="small-input">
+            </label>
+            <label>Salt umístění:
+              <select id="saltPos"><option value="suffix">Suffix</option><option value="prefix">Prefix</option></select>
+            </label>
+          </div>
+
+          <div style="margin-top:12px" class="small muted">
+            Poznámka: Rainbow tables většinou nefungují při použití saltů. Tato simulace ilustruje oba přístupy.
+          </div>
+
+          <div style="margin-top:12px">
+            <button id="btnGen" class="btn primary">Generovat DB</button>
+            <button id="btnClear" class="btn">Vyčistit</button>
+          </div>
+        </div>
+
+        <div>
+          <label>Zdroj slovníku:
+            <select id="wordlistChoice">
+              <option value="builtin" selected>Vestavěný (top common)</option>
+              <option value="upload">Upload .txt</option>
+            </select>
+          </label>
+          <div id="uploadBox" style="display:none">
+            <input id="wordlistFile" type="file" accept=".txt" />
+            <div class="small muted">Soubor: jeden kandidát na řádek.</div>
+          </div>
+
+          <label>Náhled slovníku:
+            <textarea id="wordlistPreview" readonly class="small-input" style="width:100%; min-height:140px; margin-top:6px;"></textarea>
+          </label>
+
+          <label>Počet zkoušených kandidátů (z wordlistu) / limit:
+            <input id="limit" type="number" min="1" max="1000000" value="5000" class="small-input">
+          </label>
+
+          <label>Útočný režim:
+            <select id="attackMode">
+              <option value="bruteforce" selected>Brute-force přes wordlist (per-user)</option>
+              <option value="rainbow">Rainbow table (precompute hash→pwd)</option>
+            </select>
+          </label>
+
+          <div style="margin-top:8px" class="row">
+            <button id="btnStart" class="btn primary">▶ Spustit útok</button>
+            <button id="btnStop" class="btn">■ Zastavit</button>
+          </div>
+
+          <div style="margin-top:8px">
+            <div class="small muted">Zobrazený progres reflektuje počet testovaných kandidátů.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="flex-between">
+        <h3>Uniklé záznamy (vybrané)</h3>
+        <div class="small muted">Když je heslo nalezeno, řádek se zvýrazní zeleně.</div>
+      </div>
+
+      <div style="margin-top:8px; overflow:auto">
+        <table id="dbTable" role="table">
+          <thead>
+            <tr>
+              <th>#</th><th>Email</th><th>Hash</th><th>Salt</th><th>Reg date</th><th>Cracked?</th><th>Plain</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:10px">
+        <progress id="progress" value="0" max="1"></progress>
+      </div>
+      <div style="margin-top:10px" class="console" id="console"></div>
+    </section>
+  <script type="module" src="../js/site-doc.js"></script>
+    <site-doc src="rainbow_tables_explain.md" title="📘 Vysvětlení" toggle></site-doc>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/lib/common.min.js"></script>
+
+<script type="module">
+  // Rainbow / cracking playground
+  // (SparkMD5 is loaded as a UMD global via script tag; use SparkMD5.hash)
+
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+
+  // Built-in small common password list (for demo). In real use upload bigger list.
+  const COMMON = [
+    "123456","password","123456789","12345678","12345","qwerty","abc123","football",
+    "1234567","monkey","letmein","login","admin","welcome","princess","sunshine",
+    "iloveyou","password1","123123","qwerty123","1q2w3e4r"
+  ];
+
+  const numRowsEl = $('#numRows');
+  const algoEl = $('#algo');
+  const saltModeEl = $('#saltMode');
+  const saltOptionsEl = $('#saltOptions');
+  const saltLenEl = $('#saltLen');
+  const saltPosEl = $('#saltPos');
+  const configPanel = $('#configPanel');
+
+  const wordlistChoiceEl = $('#wordlistChoice');
+  const uploadBox = $('#uploadBox');
+  const fileEl = $('#wordlistFile');
+  const previewEl = $('#wordlistPreview');
+  const limitEl = $('#limit');
+  const attackModeEl = $('#attackMode');
+
+  const btnGen = $('#btnGen');
+  const btnClear = $('#btnClear');
+  const btnStart = $('#btnStart');
+  const btnStop  = $('#btnStop');
+
+  const dbTableBody = $('#dbTable tbody');
+  const consoleEl = $('#console');
+  const progressEl = $('#progress');
+
+  // State
+  let db = []; // {email, hash, salt, regdate, cracked:false, plain:null}
+  let running = false;
+  let stopRequested = false;
+  let wordlist = []; // candidates array
+
+  // ========== helpers ==========
+  function log(...args){
+    const line = `[${new Date().toLocaleTimeString()}] ${args.join(' ')}`;
+    const el = document.createElement('div');
+    el.textContent = line;
+    consoleEl.appendChild(el);
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+
+  function clearLog(){ consoleEl.innerHTML = ''; }
+
+  function randHex(len){
+    const bytes = new Uint8Array(len);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  /**
+   * makeSalt(len, regdate, mode)
+   * - len: number of bytes (hex length = 2*len)
+   * - regdate: optional string (ISO date) used when mode === 'regdate'
+   * - mode: 'random' (default) or 'regdate'
+   */
+  function makeSalt(len, regdate=null, mode='random'){
+    if (mode === 'regdate' && regdate){
+      // deterministic salt derived from registration date
+      // produce hex string; SparkMD5.hash returns hex chars
+      let h = SparkMD5.hash(String(regdate));
+      // repeat / pad if needed to reach requested byte length (2*len hex chars)
+      const needed = len*2;
+      while (h.length < needed) h = h + h;
+      return h.slice(0, needed);
+    }
+    // fallback: random hex of len bytes
+    const bytes = new Uint8Array(len);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function randEmail(){
+    const u = Math.random().toString(36).slice(2,9);
+    const domain = ['gmail.com','seznam.cz','hotmail.com','company.com'][Math.floor(Math.random()*4)];
+    return `${u}@${domain}`;
+  }
+  function randDate(){
+    const start = new Date(2015,0,1).getTime();
+    const end = Date.now();
+    const d = new Date(start + Math.floor(Math.random()*(end-start)));
+    return d.toISOString().slice(0,10);
+  }
+
+  async function digestText(algo, text){
+    algo = algo.toUpperCase();
+    if (algo === 'MD5'){
+      // use SparkMD5 global (UMD)
+      return SparkMD5.hash(text);
+    } else {
+      const enc = new TextEncoder();
+      const buf = enc.encode(text);
+      const name = algo; // 'SHA-1' or 'SHA-256'
+      const h = await crypto.subtle.digest(name, buf);
+      return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+  }
+
+  // ========== DB generation ==========
+  async function generateDB(){
+    // reset
+    db = [];
+    dbTableBody.innerHTML = '';
+    clearLog();
+    stopRequested = false;
+    running = false;
+
+    const n = Math.max(1, Math.min(500, parseInt(numRowsEl.value)||20));
+    const algo = algoEl.value;
+    const saltMode = saltModeEl.value;
+    const saltLen = Math.max(4, Math.min(32, parseInt(saltLenEl.value)||8));
+    log(`Generuji ${n} záznamů (algo=${algo}, salt=${saltMode}${saltMode!=='none'?` len=${saltLen} pos=${saltPosEl.value}`:''})`);
+
+    // use a pool of actual passwords to create realistic hashes (so cracking possible)
+    const pool = [
+      ...COMMON,
+      'Anicka12Facebook!','Pepa97','Xvql!12s','letmein123','qwerty!','iloveyou1','S3krit!'
+    ];
+
+    for (let i=0;i<n;i++){
+      const email = randEmail();
+      // generate regdate before salt if salt may be derived from it
+      const regdate = randDate();
+      // pick a password from pool mostly (to allow cracking)
+      const pwd = Math.random() < 0.8 ? pool[Math.floor(Math.random()*pool.length)] : (Math.random().toString(36).slice(2,10));
+      let salt = '';
+      if (saltMode === 'per-user'){
+        salt = makeSalt(saltLen, null, 'random');
+      } else if (saltMode === 'regdate'){
+        // deterministic salt based on registration date
+        salt = makeSalt(saltLen, regdate, 'regdate');
+      }
+      const salted = ((saltMode === 'per-user' || saltMode === 'regdate') && saltPosEl.value === 'prefix') ? (salt + pwd) : (pwd + salt);
+      const hash = await digestText(algo, salted);
+      db.push({ id:i+1, email, hash, salt: (saltMode==='per-user' || saltMode==='regdate')?salt:'', regdate, cracked:false, plain: null, orig: pwd });
+    }
+
+    renderDB();
+    log('Hotovo – DB vygenerována. Některé hesla jsou z běžných seznamů (proveditelné).');
+  }
+
+  function renderDB(){
+    dbTableBody.innerHTML = '';
+    for (const row of db){
+      const tr = document.createElement('tr');
+      tr.dataset.id = row.id;
+      tr.className = row.cracked ? 'ok' : '';
+      tr.innerHTML = `
+        <td>${row.id}</td>
+        <td>${row.email}</td>
+        <td style="font-family: ui-monospace">${row.hash}</td>
+        <td style="font-family: ui-monospace">${row.salt || '—'}</td>
+        <td>${row.regdate}</td>
+        <td>${row.cracked ? '✅' : ''}</td>
+        <td style="font-family: ui-monospace">${row.plain || ''}</td>
+      `;
+      dbTableBody.appendChild(tr);
+    }
+  }
+
+  // ========== WORDLIST loader ==========
+  async function loadWordlist(){
+    const choice = wordlistChoiceEl.value;
+    wordlist = [];
+    if (choice === 'builtin'){
+      wordlist = COMMON.slice();
+    } else {
+      const f = fileEl.files[0];
+      if (!f) {
+        alert('Nahraj .txt soubor se slovníkem (jedno heslo na řádek).');
+        return;
+      }
+      const txt = await f.text();
+      wordlist = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    }
+    log(`Wordlist načten (${wordlist.length} položek)`);
+    // update preview to show one candidate per line
+    if (previewEl) previewEl.value = wordlist.join('\n');
+    return wordlist;
+  }
+
+  // Update preview area: show built-in list or uploaded file content
+  async function updatePreview(){
+    if (!previewEl) return;
+    if (wordlistChoiceEl.value === 'builtin'){
+      previewEl.value = COMMON.join('\n');
+      return;
+    }
+    const f = fileEl.files[0];
+    if (!f) { previewEl.value = ''; return; }
+    try {
+      previewEl.value = await f.text();
+    } catch (e) {
+      previewEl.value = '';
+    }
+  }
+
+  // ========== Attack routines ==========
+  async function attackBrute(limit){
+    // For each user, try up to limit candidates (iterate wordlist)
+    const algo = algoEl.value;
+    const saltMode = saltModeEl.value;
+    const saltPos = saltPosEl.value;
+    const L = Math.min(limit, wordlist.length);
+
+    let tested = 0;
+    stopRequested = false;
+    running = true;
+    progressEl.max = db.length * L;
+    progressEl.value = 0;
+
+    log(`Brute: zkouším až ${L} kandidátů z wordlistu pro každý z ${db.length} uživatelů ...`);
+
+    // iterate candidates and users; for UX better iterate candidates outermost?
+    // We'll iterate candidates outermost to allow early rainbow-like matches per pass.
+    for (let ci=0; ci<L; ci++){
+      if (stopRequested) { log('Zrušeno uživatelem'); break; }
+      const cand = wordlist[ci];
+      for (let ui=0; ui<db.length; ui++){
+        const row = db[ui];
+        if (row.cracked) { progressEl.value++; continue; }
+        // construct salted candidate per row
+        const input = (saltMode === 'per-user' && row.salt) ? (saltPos === 'prefix' ? row.salt + cand : cand + row.salt) : cand;
+        const h = await digestText(algo, input);
+        tested++;
+        if (h === row.hash){
+          row.cracked = true; row.plain = cand;
+          log(`✔ nalezen: id=${row.id} email=${row.email} pwd=${cand}`);
+          // update row in table
+          const tr = dbTableBody.querySelector(`tr[data-id="${row.id}"]`);
+          if (tr){ tr.classList.add('ok'); tr.children[5].textContent = '✅'; tr.children[6].textContent = cand; }
+        }
+        progressEl.value++;
+      }
+      // Every few iterations, yield to UI
+      if (ci % 50 === 0) await new Promise(r => setTimeout(r,0));
+    }
+    running = false;
+    log(`Brute finished. Tested ~${tested} candidate checks.`);
+  }
+
+  async function attackRainbow(limit){
+    // Precompute hash->pwd for wordlist up to limit
+    if (saltModeEl.value !== 'none'){
+      log('Pozor: rainbow tables obvykle nefungují, protože salt mění hash. Přepni salt na "none" nebo použij bruteforce.');
+    }
+    const algo = algoEl.value;
+    const L = Math.min(limit, wordlist.length);
+    const map = new Map();
+    log(`Precomputing rainbow table for ${L} candidates (algo=${algo})...`);
+    // compute mapping
+    for (let i=0;i<L;i++){
+      const pwd = wordlist[i];
+      const h = await digestText(algo, pwd);
+      map.set(h, pwd);
+      if (i % 200 === 0) await new Promise(r => setTimeout(r,0));
+    }
+    log('Hotovo: rainbow mapa připravena. Probíhá hledání v DB...');
+    // lookup
+    let found = 0;
+    for (const row of db){
+      if (stopRequested) { log('Zrušeno uživatelem'); break; }
+      if (row.cracked) continue;
+      // rainbow works only if no salt
+      if (row.salt){
+        log(`✖ přeskočeno id=${row.id} (salted)`);
+        continue;
+      }
+      const foundPwd = map.get(row.hash);
+      if (foundPwd){
+        row.cracked = true; row.plain = foundPwd;
+        const tr = dbTableBody.querySelector(`tr[data-id="${row.id}"]`);
+        if (tr){ tr.classList.add('ok'); tr.children[5].textContent = '✅'; tr.children[6].textContent = foundPwd; }
+        found++;
+        log(`✔ rainbow hit id=${row.id} email=${row.email} pwd=${foundPwd}`);
+      }
+    }
+    log(`Rainbow finished. Nalezeno: ${found}`);
+  }
+
+  // ========== Controls ==========
+  saltModeEl.addEventListener('change', ()=> {
+    // show salt options both for random per-user salt and regdate-derived salt
+    saltOptionsEl.style.display = (saltModeEl.value === 'per-user' || saltModeEl.value === 'regdate') ? '' : 'none';
+  });
+
+  wordlistChoiceEl.addEventListener('change', ()=> {
+    uploadBox.style.display = wordlistChoiceEl.value === 'upload' ? '' : 'none';
+    updatePreview();
+  });
+
+  btnGen.addEventListener('click', async ()=>{
+    btnGen.disabled = true;
+    await generateDB();
+    // zajistit, že tabulka je vykreslená
+    try { renderDB(); } catch(e) { /* ignore */ }
+    // posunout zobrazení na první řádek výsledků (pokud existuje)
+    const firstRow = dbTableBody.querySelector('tr');
+    if (firstRow) firstRow.scrollIntoView({behavior:'smooth', block:'start'});
+    btnGen.disabled = false;
+  });
+  btnClear.addEventListener('click', ()=>{
+    db = [];
+    renderDB();
+    clearLog();
+    progressEl.value = 0;
+  });
+
+  btnStart.addEventListener('click', async ()=>{
+    if (db.length === 0) { alert('Nejprve vygeneruj DB.'); return; }
+    btnStart.disabled = true;
+    btnStop.disabled = false;
+    clearLog();
+    await loadWordlist();
+    const limit = Math.max(1, Math.min(1000000, parseInt(limitEl.value)||5000));
+    const mode = attackModeEl.value;
+    stopRequested = false;
+    if (mode === 'bruteforce') {
+      await attackBrute(limit);
+    } else {
+      await attackRainbow(limit);
+    }
+    btnStart.disabled = false;
+    btnStop.disabled = true;
+    log('Konec útoku.');
+  });
+
+  btnStop.addEventListener('click', ()=>{
+    stopRequested = true;
+    btnStop.disabled = true;
+    log('Stop requested...');
+  });
+
+  // Načíst pouze preview slovníku při startu. Generace "úniku" proběhne až po stisku
+  // tlačítka "Generovat DB".
+  (async ()=>{ 
+    await updatePreview();
+  })();
+</script>
+</body>
+</html>
