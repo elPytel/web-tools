@@ -171,7 +171,7 @@
   const $ = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 
-  import {loadWordlistFromPath, digestText, makeSalt, randHex, randEmail, randDate, WORDLISTS, getWordlistEntry } from '../js/cybersec.js';
+  import {loadWordlistFromPath, digestText, makeSalt, randHex, randEmail, randDate, WORDLISTS, getWordlistEntry, loadCommonNames, loadCommonSurnames } from '../js/cybersec.js';
 
   // leak-specific wordlist state (used for generating leaked DB pool)
   let leakWordlist = [];
@@ -205,6 +205,8 @@
   const progressEl = $('#progress');
 
   // State
+  let usernames = [];
+  let surnames = [];
   let db = []; // {email, hash, salt, regdate, cracked:false, plain:null}
   let running = false;
   let stopRequested = false;
@@ -238,7 +240,7 @@
     
     let numberOfRandomPasswords = 0;
     for (let i=0;i<n;i++){
-      const email = randEmail();
+      const email = randEmail(usernames, surnames);
       // generate regdate before salt if salt may be derived from it
       const regdate = randDate();
       // pick a password from pool mostly (to allow cracking)
@@ -587,6 +589,10 @@
     // preload both attacker and leak wordlists & previews
     await loadWordlistGeneric({ choiceEl: wordlistChoiceEl, fileInputEl: fileEl, previewEl: previewEl, targetVar: 'wordlist' });
     await loadWordlistGeneric({ choiceEl: leakWordlistChoiceEl, fileInputEl: leakFileEl, previewEl: leakPreviewEl, targetVar: 'leakWordlist' });
+    usernames = await loadCommonNames();
+    log('Common names loaded.');
+    surnames = await loadCommonSurnames();
+    log('Common surnames loaded.');
   })();
 </script>
 </body>

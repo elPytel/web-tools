@@ -115,12 +115,40 @@ export function randHex(len){
   return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-export function randEmail(){
-  const u = Math.random().toString(36).slice(2,9);
-  const domain = ['gmail.com','seznam.cz','hotmail.com','company.com'][Math.floor(Math.random()*4)];
-  return `${u}@${domain}`;
+/** randEmail(names, surnames)
+ * - generates random email address
+ * - if names & surnames arrays are provided, uses them to create realistic emails
+ */
+export function randEmail(names=[], surnames=[]){
+  const domains = ['gmail.com','seznam.cz','hotmail.com','centrum.cz','yahoo.com','post.cz','email.cz','atlas.cz','tiscali.cz'];
+  if (names.length > 0 && surnames.length > 0){
+    const name = names[Math.floor(Math.random()*names.length)];
+    let surname = surnames[Math.floor(Math.random()*surnames.length)];
+    // name to lower, remove diacritics
+    const nameNorm = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    // surnema to lower, remove diacritics
+    const surnameNorm = surname.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const formats = [
+      () => `${nameNorm}.${surnameNorm}`,
+      () => `${nameNorm[0]}${surnameNorm}`,
+      () => `${nameNorm}${surnameNorm[0]}`,
+      () => `${nameNorm}${Math.floor(Math.random()*100)}`,
+      () => `${surnameNorm}${Math.floor(Math.random()*100)}`,
+    ];
+    const localPart = formats[Math.floor(Math.random()*formats.length)]();
+    const domain = domains[Math.floor(Math.random()*domains.length)];
+    return `${localPart}@${domain}`;
+  } else {
+    const user_name = Math.random().toString(36).slice(2,9);
+    const domain = domains[Math.floor(Math.random()*domains.length)];
+    return `${user_name}@${domain}`;
+  }
 }
 
+/** randDate()
+ * - generates random date between 2015-01-01 and today
+ * - returns ISO date string (YYYY-MM-DD)
+ */
 export function randDate(){
   const start = new Date(2015,0,1).getTime();
   const end = Date.now();
@@ -144,4 +172,63 @@ export function makeSalt(len, regdate=null, mode='random'){
   const bytes = new Uint8Array(len);
   crypto.getRandomValues(bytes);
   return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// load common names & surnames
+let COMMON_NAMES_FILE = '../assets/OpenData-seznam_jmen.csv';
+let COMMON_SURNAMES_FILE = '../assets/czech_surnames.txt';
+
+/**
+ * loadCommonNames(file, gender)
+ * - loads common first names from CSV file:
+ * - structure: DRUH_JMENA,JMENO
+ * - gender: 'M'/'MUZ', 'F'/'ZENA', or null (both)
+ * 
+ * - returns array of names
+ */
+export async function loadCommonNames(file=COMMON_NAMES_FILE, gender=null){
+  let header = true;
+  const names = [];
+  let resp = null;
+  try {
+    resp = await fetch(file);
+  } catch (e) {
+    console.error('Error loading common names file:', e);
+    return names;
+  }
+  const text = await resp.text();
+  const lines = text.split(/\r?\n/);
+  for (const line of lines){
+    if (header){
+      header = false;
+      continue;
+    }
+    const parts = line.split(',');
+    if (parts.length < 2) continue;
+    const g = parts[0].trim();
+    const name = parts[1].trim().toLowerCase();
+    if (gender === null || gender === g || (gender === 'M' && g === 'MUZ') || (gender === 'F' && g === 'ZENA')) {
+      names.push(name);
+    }
+  }
+  return names;
+}
+
+/**
+ * loadCommonSurnames(file)
+ * - loads common surnames from text file (one per line)
+ * - returns array of surnames
+ */
+export async function loadCommonSurnames(file=COMMON_SURNAMES_FILE){
+  let resp = null;
+  try {
+    resp = await fetch(file);
+  } catch (e) {
+    console.error('Error loading common surnames file:', e);
+    return [];
+  }
+  const text = await resp.text();
+  const lines = text.split(/\r?\n/);
+  const surnames = lines.map(line => line.trim().toLowerCase()).filter(line => line !== '');
+  return surnames;
 }
