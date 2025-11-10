@@ -1,5 +1,15 @@
+/**
+ * Compute base-2 logarithm.
+ * @param {number} n - Input number (must be > 0).
+ * @returns {number} Base-2 logarithm of n.
+ */
 export function log2(n) { return Math.log(n) / Math.log(2); }
 
+/**
+ * Classify key/entropy strength into human label and class.
+ * @param {number} bits - Entropy in bits.
+ * @returns {{label:string, cls:string}} Classification object.
+ */
 export function classifyStrength(bits) {
   if (bits >= 90) return {label:'Very strong', cls:'ok'};
   if (bits >= 70) return {label:'Strong', cls:'ok'};
@@ -7,6 +17,12 @@ export function classifyStrength(bits) {
   return {label:'Weak', cls:'bad'};
 }
 
+/**
+ * Compute integer power using BigInt (fast exponentiation).
+ * @param {number|string|bigint} base - Base value.
+ * @param {number|string|bigint} exp - Exponent (non-negative).
+ * @returns {bigint} base ** exp as BigInt.
+ */
 export function bigPow(base, exp) {
   base = BigInt(base);
   exp = BigInt(exp);
@@ -18,6 +34,12 @@ export function bigPow(base, exp) {
   return res;
 }
 
+/**
+ * Format BigInt with thin-space grouping for small numbers,
+ * or compact scientific-like notation for large numbers.
+ * @param {bigint} n - Number to format.
+ * @returns {string} Formatted string.
+ */
 export function formatBigInt(n) {
   const s = n.toString();
   if (s.length <= 15) {
@@ -28,6 +50,12 @@ export function formatBigInt(n) {
   return `${mant[0]}.${mant.slice(1)} × 10^${exp}`;
 }
 
+/**
+ * Convert seconds to a human-readable Czech-like string.
+ * Shows up to three largest units.
+ * @param {number} sec - Seconds.
+ * @returns {string} Human readable string (e.g. "1 hod 2 min").
+ */
 export function secondsToHuman(sec) {
   const units = [
     ['roků', 365*24*3600],
@@ -48,9 +76,14 @@ export function secondsToHuman(sec) {
 }
 
 /**
- * computeRateAndHashTime(params)
- * params: { mode, rate, ghz, instr, ms }
- * returns { rate, perHashSec }
+ * Compute rate and per-hash timing based on mode.
+ * @param {Object} params - Parameters object.
+ * @param {string} [params.mode='manual'] - 'manual'|'cpu'|'hash'
+ * @param {number} [params.rate=1] - manual rate (hashes/s)
+ * @param {number} [params.ghz=0] - CPU frequency in GHz (for cpu mode)
+ * @param {number} [params.instr=1] - instructions per hash (for cpu mode)
+ * @param {number} [params.ms=1] - milliseconds per hash (for hash mode)
+ * @returns {{rate:number, perHashSec:number|null}} Computed rate and per-hash seconds (or null).
  */
 export function computeRateAndHashTime({ mode='manual', rate=1, ghz=0, instr=1, ms=1 } = {}) {
   if (mode === 'manual') {
@@ -75,17 +108,31 @@ export function computeRateAndHashTime({ mode='manual', rate=1, ghz=0, instr=1, 
 }
 
 // ========== Wordlist configuration (unified) ==========
-  // Map of available wordlists: key -> { label, path }
+
+/**
+ * Available wordlists (id, label, path).
+ * @type {Array<{id:string,label:string,path:string}>}
+ */
 export const WORDLISTS = [
-  { id: 'builtin', label: 'Vestavěný (top common)', path: '../assets/top_common_pswd.txt' },
-  { id: 'darkweb', label: 'darkweb2017 top: 10000', path: '../assets/darkweb2017_top-10000.txt' },
-  { id: 'nordpass', label: 'nordpass top: 200', path: '../assets/nordpass_top-200.txt' }
+  { id: 'builtin', label: 'common top: 10', path: '../assets/top_common_pswd.txt' },
+  { id: 'nordpass', label: 'nordpass top: 200', path: '../assets/nordpass_top-200.txt' },
+  { id: 'darkweb', label: 'darkweb2017 top: 10000', path: '../assets/darkweb2017_top-10000.txt' }
 ];
 
+/**
+ * Get wordlist entry by id.
+ * @param {string} id - Wordlist id.
+ * @returns {{id:string,label:string,path:string}|null} Entry or null.
+ */
 export function getWordlistEntry(id){
   return WORDLISTS.find(e => e.id === id) || null;
 }
 
+/**
+ * Load wordlist from a URL/path.
+ * @param {string} path - URL or local path to text file.
+ * @returns {Promise<string[]>} Array of non-empty lines.
+ */
 export function loadWordlistFromPath(path){
   return fetch(path)
     .then(resp => resp.text())
@@ -93,8 +140,10 @@ export function loadWordlistFromPath(path){
 }
 
 /**
- * digestText(algo, text)
- * - supports 'MD5' (SparkMD5.hash global), 'SHA-1', 'SHA-256'
+ * Compute digest of text using WebCrypto or SparkMD5 for MD5.
+ * @param {string} algo - 'MD5'|'SHA-1'|'SHA-256' etc.
+ * @param {string} text - Input text.
+ * @returns {Promise<string>} Hex digest string.
  */
 export async function digestText(algo, text){
   algo = String(algo || '').toUpperCase();
@@ -109,15 +158,22 @@ export async function digestText(algo, text){
   }
 }
 
+/**
+ * Generate random hex string of len bytes (2*len hex chars).
+ * @param {number} len - Number of random bytes.
+ * @returns {string} Hex string.
+ */
 export function randHex(len){
   const bytes = new Uint8Array(len);
   crypto.getRandomValues(bytes);
   return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-/** randEmail(names, surnames)
- * - generates random email address
- * - if names & surnames arrays are provided, uses them to create realistic emails
+/**
+ * Generate random email address.
+ * @param {string[]} [names=[]] - Optional first names to choose from.
+ * @param {string[]} [surnames=[]] - Optional surnames to choose from.
+ * @returns {string} Email address.
  */
 export function randEmail(names=[], surnames=[]){
   const domains = ['gmail.com','seznam.cz','hotmail.com','centrum.cz','yahoo.com','post.cz','email.cz','atlas.cz','tiscali.cz'];
@@ -145,9 +201,9 @@ export function randEmail(names=[], surnames=[]){
   }
 }
 
-/** randDate()
- * - generates random date between 2015-01-01 and today
- * - returns ISO date string (YYYY-MM-DD)
+/**
+ * Generate random ISO date between 2015-01-01 and today.
+ * @returns {string} Date string in YYYY-MM-DD.
  */
 export function randDate(){
   const start = new Date(2015,0,1).getTime();
@@ -157,14 +213,24 @@ export function randDate(){
 }
 
 /**
- * makeSalt(len, regdate, mode)
- * - len: number of bytes (hex length = 2*len)
- * - regdate: optional string (ISO date) used when mode === 'regdate'
- * - mode: 'random' (default) or 'regdate'
+ * Create salt as hex string.
+ * @param {number} len - Number of bytes (hex length = 2*len).
+ * @param {string|null} [regdate=null] - Registration date used in 'regdate' mode.
+ * @param {string} [mode='random'] - 'random' or 'regdate'.
+ * @returns {string} Hex salt string of length 2*len.
  */
 export function makeSalt(len, regdate=null, mode='random'){
   if (mode === 'regdate' && regdate){
-    let h = (typeof SparkMD5 !== 'undefined') ? SparkMD5.hash(String(regdate)) : '';
+    // Use SparkMD5 if available, otherwise derive a deterministic hex string from regdate
+    let h = '';
+    if (typeof SparkMD5 !== 'undefined') {
+      h = SparkMD5.hash(String(regdate));
+    } else {
+      // deterministic hex fallback: encode chars to hex (synchronous)
+      h = Array.from(String(regdate))
+        .map(c => c.charCodeAt(0).toString(16).padStart(2,'0'))
+        .join('');
+    }
     const needed = len*2;
     while (h.length < needed) h = h + h;
     return h.slice(0, needed);
@@ -179,12 +245,10 @@ let COMMON_NAMES_FILE = '../assets/OpenData-seznam_jmen.csv';
 let COMMON_SURNAMES_FILE = '../assets/czech_surnames.txt';
 
 /**
- * loadCommonNames(file, gender)
- * - loads common first names from CSV file:
- * - structure: DRUH_JMENA,JMENO
- * - gender: 'M'/'MUZ', 'F'/'ZENA', or null (both)
- * 
- * - returns array of names
+ * Load common first names from CSV.
+ * @param {string} [file=COMMON_NAMES_FILE] - Path to CSV file.
+ * @param {string|null} [gender=null] - 'M'|'F' or null for both.
+ * @returns {Promise<string[]>} Array of lowercase names.
  */
 export async function loadCommonNames(file=COMMON_NAMES_FILE, gender=null){
   let header = true;
@@ -215,9 +279,9 @@ export async function loadCommonNames(file=COMMON_NAMES_FILE, gender=null){
 }
 
 /**
- * loadCommonSurnames(file)
- * - loads common surnames from text file (one per line)
- * - returns array of surnames
+ * Load common surnames from text file (one per line).
+ * @param {string} [file=COMMON_SURNAMES_FILE] - Path to surname file.
+ * @returns {Promise<string[]>} Array of lowercase surnames.
  */
 export async function loadCommonSurnames(file=COMMON_SURNAMES_FILE){
   let resp = null;

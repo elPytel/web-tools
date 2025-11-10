@@ -237,3 +237,4 @@ Slovníky hesel musejí být voleny tak, aby útočník měl "obsáhlejší" sez
 
 ## Zdroje a další čtení
 - [github: SecLists](https://github.com/danielmiessler/SecLists)
+- [Computerphile: How NOT to Store Passwords!](https://www.youtube.com/watch?v=8ZtInClXe1Q)
