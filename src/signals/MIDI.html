@@ -88,12 +88,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
 
 <script type="module">
+  // Přidáno: znovupoužitelné midi utility
+  import { midiToFreq, midiNoteName } from '../js/midi.js';
+
   // ==== utils ====
   const $ = (s, r=document)=>r.querySelector(s);
   const $$ = (s, r=document)=>[...r.querySelectorAll(s)];
   const status = (msg)=> $('#status').textContent = 'Stav: ' + msg;
-
-  const midiToFreq = n => 440 * Math.pow(2, (n - 69) / 12);
 
   // ==== UI refs ====
   const fileEl = $('#file');
@@ -150,13 +151,6 @@
       keysEl.appendChild(d);
     }
     keysEl.style.width = '72px';
-  }
-
-  function midiNoteName(n){
-    const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-    const name = names[n % 12];
-    const oct = Math.floor(n/12) - 1;
-    return name + oct;
   }
 
   function buildRuler(){
@@ -324,16 +318,17 @@
       }
 
       status(`Načteno: ${midi.header.ppq} PPQ, tempo ${midi.header.tempos?.[0]?.bpm ?? '—'} BPM, tracks=${midi.tracks.length}`);
-      // naplnit select
+      // naplnit select — pouze stopy s nenulovým počtem not
       trackSel.innerHTML = '';
       midi.tracks.forEach((t,i)=>{
+        if (!t.notes || !t.notes.length) return; // přeskočit prázdné stopy
         const opt = document.createElement('option');
         const name = t.name || `Track ${i+1}`;
         opt.value = i; opt.textContent = `${i+1}. ${name} (notes: ${t.notes.length})`;
         trackSel.appendChild(opt);
       });
-      // default: první track s notami
-      const idx = midi.tracks.findIndex(t => t.notes.length);
+      // default: první track s notami (pokud existuje)
+      const idx = midi.tracks.findIndex(t => t.notes && t.notes.length);
       trackSel.value = String(idx >= 0 ? idx : 0);
       hydrateFromTrack(Number(trackSel.value));
     } catch (err){
@@ -425,7 +420,7 @@
   btnClearSel.addEventListener('click', ()=> {
     if (!selectedId) return;
     const i = notes.findIndex(n => n.id === selectedId);
-    if (i >= 0){ notes.splice(i,1); selectedId = null; redrawGrid(); buildRuler(); updateSelectedPanel(); }
+    if (i >= 0) { notes.splice(i,1); selectedId = null; redrawGrid(); buildRuler(); updateSelectedPanel(); }
   });
 
   fileEl.addEventListener('change', async (e)=>{
@@ -473,7 +468,7 @@
       console.warn('[MIDI] demoSelect element not found');
       return;
     }
-    demoSelect.innerHTML = '<option value="">— Vyber demo z ../assets/audio/ —</option>';
+    demoSelect.innerHTML = '<option value="">Vyber soubor</option>';
     status('Kontroluji zdroje demo MIDI…');
 
     // 1) Try manifest file first (recommended)
@@ -523,7 +518,7 @@
       console.log('[MIDI] demoSelect change value=', demoSelect.value);
       const v = demoSelect.value;
       if (!v) return;
-      if (v === '__upload__') {
+      if (v === '__upload__' ) {
         console.log('[MIDI] demoSelect triggered upload dialog');
         fileEl.click();
         // reset back to placeholder after opening

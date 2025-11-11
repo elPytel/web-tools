@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <title>🎼 MIDI přehrávač (jednoduchý)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .toolbar { display:flex; gap:12px; flex-wrap:wrap; align-items:center }
+    .toolbar .group { display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+    .status { font-family: ui-monospace, Menlo, Consolas, monospace; font-size:.95rem }
+    .dropzone {
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .dropzone.drag { background: var(--panel-2) }
+    input[type="range"] { width: 220px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <script type="module" src="../js/site-header.js"></script>
+  <site-header title="🎼 MIDI přehrávač"></site-header>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="group">
+        <input id="file" type="file" accept=".mid,.midi" />
+        <div id="drop" class="dropzone">…nebo přetáhni soubor .mid sem…</div>
+      </div>
+      <div class="group">
+        <button id="btnPlay" class="btn primary" disabled>▶ Přehrát</button>
+        <button id="btnStop" class="btn" disabled>■ Stop</button>
+      </div>
+      <div class="group">
+        <label>Hlasitost:
+          <input id="vol" type="range" min="0" max="100" value="80" />
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="status" id="status">Stav: načti MIDI soubor</div>
+    <div class="muted" id="meta"></div>
+  </div>
+</div>
+
+<!-- Knihovny -->
+<script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
+
+<script type="module">
+  import { midiToFreq, pctToDb, MidiPlayer } from '../js/midi.js';
+
+  // malé utilky
+  const $ = (s, r=document)=>r.querySelector(s);
+  const statusEl = $('#status');
+  const metaEl = $('#meta');
+  const fileEl = $('#file');
+  const dropEl = $('#drop');
+  const btnPlay = $('#btnPlay');
+  const btnStop = $('#btnStop');
+  const volEl = $('#vol');
+
+  function setStatus(msg){ statusEl.textContent = 'Stav: ' + msg; }
+  
+  function enableControls(ok){
+    btnPlay.disabled = !ok;
+    btnStop.disabled = !ok;
+  }
+ 
+   // ===== UI wiring =====
+  const player = new MidiPlayer();
+
+  volEl.addEventListener('input', ()=> player.setVolume(volEl.value));
+
+  btnPlay.addEventListener('click', async ()=>{
+    if (!player.events || !player.events.length) return;
+    await player.ensureAudio(volEl.value);
+    // after synth exists, ensure part is prepared (preparePart used events)
+    player.preparePart();
+    player.start();
+    setStatus('Přehrávání…');
+    btnPlay.disabled = true;
+    btnStop.disabled = false;
+  });
+
+  btnStop.addEventListener('click', ()=>{
+    player.stop();
+    setStatus('Stop');
+    btnPlay.disabled = false;
+    btnStop.disabled = true;
+  });
+
+  // File input
+  fileEl.addEventListener('change', async (e)=>{
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const fileName = f.name;
+    setStatus('Načítám soubor…');
+    try {
+      const buf = await f.arrayBuffer();
+      const meta = await player.loadArrayBuffer(buf);
+      metaEl.textContent = `Soubor: ${fileName} • Tempo: ${meta.tempo ? meta.tempo+' BPM' : '—'} • Stopy: ${meta.tracks} • Délka: ~${meta.lengthSec.toFixed(2)} s
+${meta.trackInfo}`;
+      setStatus('Načteno. Připraveno k přehrání.');
+      enableControls(true);
+      btnStop.disabled = true;
+    } catch (err) {
+      console.error(err);
+      setStatus('Chyba při parsování MIDI.');
+      enableControls(false);
+    }
+  });
+
+  // Drag & drop
+  ;['dragenter','dragover'].forEach(ev => dropEl.addEventListener(ev, e=>{
+    e.preventDefault(); dropEl.classList.add('drag');
+  }));
+  ;['dragleave','drop'].forEach(ev => dropEl.addEventListener(ev, e=>{
+    e.preventDefault(); dropEl.classList.remove('drag');
+  }));
+  dropEl.addEventListener('drop', async (e)=>{
+    const f = e.dataTransfer.files?.[0];
+    if (!f) return;
+    const fileName = f.name;
+    setStatus('Načítám soubor…');
+    try {
+      const buf = await f.arrayBuffer();
+      const meta = await player.loadArrayBuffer(buf);
+      metaEl.textContent = `Soubor: ${fileName} • Tempo: ${meta.tempo ? meta.tempo+' BPM' : '—'} • Stopy: ${meta.tracks} • Délka: ~${meta.lengthSec.toFixed(2)} s
+${meta.trackInfo}`;
+      setStatus('Načteno. Připraveno k přehrání.');
+      enableControls(true);
+      btnStop.disabled = true;
+    } catch (err) {
+      console.error(err);
+      setStatus('Chyba při parsování MIDI.');
+      enableControls(false);
+    }
+  });
+
+  // init
+  setStatus('Načti MIDI soubor (.mid) a stiskni Přehrát.');
+  enableControls(false);
+</script>
+</body>
+</html>

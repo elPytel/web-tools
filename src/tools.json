@@ -152,6 +152,23 @@
           "path": "signals/audio_generator.html",
           "tags": ["audio", "fft", "fourier"],
           "hasExplain": true
+        },
+        {
+          "id": "MIDI_player",
+          "name": "MIDI přehrávač",
+          "desc": "Přehrává MIDI soubory přímo v prohlížeči pomocí Tone.js.",
+          "difficulty": "🟡",
+          "path": "signals/MIDI_player.html",
+          "tags": ["midi", "hudba", "přehrávač"]
+        },
+        {
+          "id": "MIDI_editor",
+          "name": "MIDI editor a přehrávač",
+          "desc": "Vytvářej, upravuj a přehrávej MIDI soubory přímo v prohlížeči.",
+          "difficulty": "🟠",
+          "path": "signals/MIDI.html",
+          "tags": ["midi", "hudba", "editor"],
+          "hasExplain": true
         }
       ]
     },
