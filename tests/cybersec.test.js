@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { log2, classifyStrength, bigPow, formatBigInt, secondsToHuman, computeRateAndHashTime } from '../src/js/cybersec.js';
+import { log2, classifyStrength, bigPow, formatBigInt, secondsToHuman, computeRateAndHashTime, getWordlistEntry, randHex, randEmail, randDate, makeSalt, digestText } from '../src/js/cybersec.js';
 
 describe('cybersec utils', () => {
   it('log2 computes base-2 logarithm', () => {
@@ -50,7 +50,6 @@ describe('cybersec utils', () => {
 
   // ---------- additional tests ----------
   it('getWordlistEntry returns expected object', () => {
-    const { getWordlistEntry } = require('../src/js/cybersec.js');
     const e = getWordlistEntry('nordpass');
     expect(e).not.toBeNull();
     expect(e.id).toBe('nordpass');
@@ -58,20 +57,17 @@ describe('cybersec utils', () => {
   });
 
   it('randHex returns correct length and hex chars', () => {
-    const { randHex } = require('../src/js/cybersec.js');
     const s = randHex(8);
     expect(s).toMatch(/^[0-9a-f]+$/);
     expect(s.length).toBe(16);
   });
 
   it('randEmail default returns email-like string', () => {
-    const { randEmail } = require('../src/js/cybersec.js');
     const e = randEmail();
     expect(e).toMatch(/^[^@]+@[^@]+\.[^@]+$/);
   });
 
   it('randDate returns ISO date between 2015-01-01 and today', () => {
-    const { randDate } = require('../src/js/cybersec.js');
     const d = randDate();
     expect(d).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     const t = new Date(d).getTime();
@@ -80,7 +76,6 @@ describe('cybersec utils', () => {
   });
 
   it('makeSalt random yields hex of correct length; regdate is deterministic', () => {
-    const { makeSalt } = require('../src/js/cybersec.js');
     const r = makeSalt(8);
     expect(r).toMatch(/^[0-9a-f]+$/);
     expect(r.length).toBe(16);
@@ -93,7 +88,6 @@ describe('cybersec utils', () => {
   });
 
   it('digestText supports SHA-256 and returns known hash for "abc"', async () => {
-    const { digestText } = require('../src/js/cybersec.js');
     const h = await digestText('SHA-256', 'abc');
     expect(h).toBe('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
   });
