@@ -1,4 +1,9 @@
-// WebAudio + vizualizace pro Signály (MVP)
+/**
+ * Module for simple WebAudio signal generation and visualization (MVP).
+ * Exports setters to configure oscillator, envelope and visualization,
+ * plus start/stop controls and a getState helper.
+ */
+
 let ctx, osc, gain, shaper, comp, analyser, analyserTD;
 let running = false;
 
@@ -12,6 +17,10 @@ const state = {
   fftSize: 2048
 };
 
+/**
+ * Ensure AudioContext and basic nodes exist.
+ * (Internal helper)
+ */
 function ensureCtx() {
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -45,7 +54,9 @@ function ensureCtx() {
   }
 }
 
-// ====== Oscillator / PeriodicWave ======
+/**
+ * Rebuild oscillator node according to current state (internal).
+ */
 function rebuildOsc() {
   if (osc) { try { osc.stop(); } catch{}; osc.disconnect(); osc = null; }
   osc = ctx.createOscillator();
@@ -69,7 +80,10 @@ function rebuildOsc() {
   if (running) osc.start();
 }
 
-// ====== Public setters ======
+/**
+ * Set oscillator waveform or use additive harmonics.
+ * @param {string} w - 'sine'|'square'|'triangle'|'sawtooth'|'additive'
+ */
 export function setWave(w) {
   state.wave = w;
   ensureCtx();
@@ -77,8 +91,8 @@ export function setWave(w) {
 }
 
 /**
- * Set FFT size for analyser nodes. Must be a power of two (32..32768).
- * Accepts common values like 512, 1024, 2048, 4096.
+ * Set FFT size for analyser nodes. Must be power of two 32..32768.
+ * @param {number} n - FFT size.
  */
 export function setFFTSize(n) {
   const v = Number(n) | 0;
@@ -89,6 +103,11 @@ export function setFFTSize(n) {
   if (analyser) analyser.fftSize = v;
   if (analyserTD) analyserTD.fftSize = v;
 }
+
+/**
+ * Set rectification mode applied via WaveShaper.
+ * @param {'none'|'half'|'full'} mode - Rectification mode.
+ */
 export function setRect(mode) {
   state.rect = mode;
   if (!shaper) ensureCtx();
@@ -109,6 +128,11 @@ export function setRect(mode) {
   }
   shaper.curve = curve;
 }
+
+/**
+ * Set oscillator frequency (clamped to audible range) with a short fade.
+ * @param {number} f - Frequency in Hz.
+ */
 export function setFreq(f) {
   state.freq = Math.max(50, Math.min(20000, f|0));
   if (!ctx) return;
@@ -129,12 +153,22 @@ export function setFreq(f) {
     g.setTargetAtTime(target, now + 0.02, 0.02);
   } catch {}
 }
+
+/**
+ * Set output gain (0..1).
+ * @param {number} v - Linear gain value.
+ */
 export function setGain(v) {
   state.gain = Math.max(0, Math.min(1, v));
   if (!ctx) return;
   // -6 dBFS soft limit (necháme kompresor dělat bezpečnost)
   gain.gain.setTargetAtTime(state.gain, ctx.currentTime, 0.01);
 }
+
+/**
+ * Define additive harmonics for PeriodicWave.
+ * @param {Array<{n:number,amp:number}>} arr - Harmonic descriptors.
+ */
 export function setAdditive(arr) {
   state.additive = (arr||[]).filter(h => h && h.n>=1 && h.amp>0);
   if (state.wave === 'additive') {
@@ -143,7 +177,10 @@ export function setAdditive(arr) {
   }
 }
 
-// ====== Start/Stop ======
+/**
+ * Start audio generation (resumes context and fades in).
+ * @returns {Promise<void>}
+ */
 export async function start() {
   ensureCtx();
   if (ctx.state === 'suspended') await ctx.resume();
@@ -154,6 +191,10 @@ export async function start() {
   gain.gain.cancelScheduledValues(0);
   gain.gain.setTargetAtTime(state.gain, ctx.currentTime, 0.02);
 }
+
+/**
+ * Stop audio generation (fade out and stop oscillator).
+ */
 export function stop() {
   if (!ctx) return;
   // fade out a stop
@@ -162,9 +203,10 @@ export function stop() {
   running = false;
 }
 
-// ====== Vizualizace ======
-let viz = { osc: null, fft: null, showOscEl: null, showFFTEl: null, raf: 0 };
-
+/**
+ * Initialize visualization canvases and start RAF loop.
+ * @param {{osc:HTMLCanvasElement|null, fft:HTMLCanvasElement|null, showOsc:HTMLElement|null, showFFT:HTMLElement|null}} opts
+ */
 export function initViz({ osc, fft, showOsc, showFFT }) {
   viz.osc = osc; viz.fft = fft; viz.showOscEl = showOsc; viz.showFFTEl = showFFT;
   ensureCtx();
@@ -175,59 +217,8 @@ export function initViz({ osc, fft, showOsc, showFFT }) {
   loop();
 }
 
-function draw() {
-  if (!ctx) return;
-  if (viz.osc && viz.showOscEl?.checked) drawTime(viz.osc, analyserTD);
-  else if (viz.osc) clearCanvas(viz.osc);
-
-  if (viz.fft && viz.showFFTEl?.checked) drawFFT(viz.fft, analyser);
-  else if (viz.fft) clearCanvas(viz.fft);
-}
-
-function clearCanvas(c) {
-  const g = c.getContext('2d'); const {width, height} = c;
-  g.clearRect(0,0,width,height);
-}
-
-function drawTime(canvas, an) {
-  const g = canvas.getContext('2d'); const w = canvas.width, h = canvas.height;
-  const buf = new Uint8Array(an.frequencyBinCount);
-  an.getByteTimeDomainData(buf);
-
-  g.clearRect(0,0,w,h);
-  g.lineWidth = 2; g.strokeStyle = '#60a5fa';
-  g.beginPath();
-  const step = w / buf.length;
-  for (let i=0;i<buf.length;i++){
-    const v = (buf[i] - 128) / 128; // -1..1
-    const y = h*0.5 - v * (h*0.45);
-    if (i===0) g.moveTo(0, y); else g.lineTo(i*step, y);
-  }
-  g.stroke();
-}
-
-function drawFFT(canvas, an) {
-  const g = canvas.getContext('2d'); const w = canvas.width, h = canvas.height;
-  const buf = new Uint8Array(an.frequencyBinCount);
-  an.getByteFrequencyData(buf);
-
-  g.clearRect(0,0,w,h);
-  // logf osa: map bin -> freq -> x
-  const sampleRate = ctx.sampleRate;
-  const nfft = an.fftSize;
-  const minF = 50, maxF = 20000;
-  const logK = Math.log(maxF/minF);
-  const fToX = f => Math.log(f/minF)/logK; // 0..1
-
-  g.fillStyle = '#f59e0b';
-  for (let i=1;i<buf.length;i++){
-    const freq = i * sampleRate / nfft;
-    if (freq < minF || freq > maxF) continue;
-    const x = fToX(freq) * w;
-    const v = buf[i] / 255; // 0..1
-    const barH = v * (h-8);
-    g.fillRect(x, h - barH, 2, barH);
-  }
-}
-
+/**
+ * Get current public state snapshot.
+ * @returns {Object} Shallow copy of internal state with running flag.
+ */
 export function getState(){ return {...state, running}; }

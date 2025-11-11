@@ -20,12 +20,12 @@
           "tags": ["čas", "hodiny", "analogové", "digitální"]
         },
         {
-        "id": "worked_hours",
-        "name": "Výpočet odpracovaných hodin",
-        "desc": "Spočítá rozdíl mezi počátečním a koncovým časem (v minutách a ve formátu h:min). Přechod přes půlnoc je podporován.",
-        "difficulty": "🟢",
-        "path": "time/worked_hours.html",
-        "tags": ["čas", "hodiny", "minuty"]
+          "id": "worked_hours",
+          "name": "Výpočet odpracovaných hodin",
+          "desc": "Spočítá rozdíl mezi počátečním a koncovým časem (v minutách a ve formátu h:min). Přechod přes půlnoc je podporován.",
+          "difficulty": "🟢",
+          "path": "time/worked_hours.html",
+          "tags": ["čas", "hodiny", "minuty"]
         }
       ]
     },
@@ -151,6 +151,23 @@
           "difficulty": "🟡",
           "path": "signals/audio_generator.html",
           "tags": ["audio", "fft", "fourier"],
+          "hasExplain": true
+        },
+        {
+          "id": "MIDI_player",
+          "name": "MIDI přehrávač",
+          "desc": "Přehrává MIDI soubory přímo v prohlížeči pomocí Tone.js.",
+          "difficulty": "🟡",
+          "path": "signals/MIDI_player.html",
+          "tags": ["midi", "hudba", "přehrávač"]
+        },
+        {
+          "id": "MIDI_editor",
+          "name": "MIDI editor a přehrávač",
+          "desc": "Vytvářej, upravuj a přehrávej MIDI soubory přímo v prohlížeči.",
+          "difficulty": "🟠",
+          "path": "signals/MIDI.html",
+          "tags": ["midi", "hudba", "editor"],
           "hasExplain": true
         }
       ]

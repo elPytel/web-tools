@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <title>🎹 MIDI editor & přehrávač (MVP)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center }
+    .toolbar .group { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+    .roll-wrap { position:relative; overflow:auto; border:1px solid var(--border); border-radius:10px; }
+    .ruler { position:sticky; top:0; background:var(--panel); z-index:5; height:24px; border-bottom:1px solid var(--border); font-size:.85rem; display:flex; align-items:flex-end }
+    .grid { position:relative; }
+    .note { position:absolute; border-radius:6px; background: var(--accent-2, #60a5fa); opacity:.9; cursor:grab; }
+    .note:active { cursor:grabbing; }
+    .note.selected { outline:2px solid var(--accent, #3b82f6); }
+    .note .resize { position:absolute; right:0; top:0; width:8px; height:100%; cursor:ew-resize; background: linear-gradient(to right, transparent, #0003); border-top-right-radius:6px; border-bottom-right-radius:6px; }
+    .keys { position:sticky; left:0; z-index:4; background:var(--panel); border-right:1px solid var(--border); }
+    .keys .key { height:16px; width:64px; display:flex; align-items:center; justify-content:flex-end; padding-right:6px; font-size:.75rem; color:var(--muted); border-bottom:1px dashed var(--border); }
+    .legend { font-size:.9rem; color:var(--muted) }
+    .status { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.95rem; }
+    .track-select { min-width: 240px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <script type="module" src="../js/site-header.js"></script>
+  <site-header title="🎹 MIDI editor & přehrávač"></site-header>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="group">
+        <input id="file" type="file" accept=".mid,.midi" style="display:none;" />
+        <select id="demoSelect" class="small-input">
+          <option value="">— Vyber demo z ../assets/audio/ —</option>
+        </select>
+        <span class="legend">Nebo přetáhni soubor .mid přímo do editoru</span>
+      </div>
+      <div class="group">
+        <label>Track:
+          <select id="track" class="track-select"></select>
+        </label>
+        <label>Tempo: <input id="tempo" type="number" value="120" min="20" max="300" class="small-input" /></label>
+        <label>Rozlišení (px/čtvrť): <input id="ppq" type="number" value="96" min="16" max="240" class="small-input" /></label>
+        <label>Grid (1/): <input id="grid" type="number" value="4" min="1" max="16" class="small-input" /></label>
+      </div>
+      <div class="group">
+        <button id="btnPlay" class="btn primary">▶ Přehrát</button>
+        <button id="btnStop" class="btn">■ Stop</button>
+        <button id="btnClearSel" class="btn">Smazat vybranou</button>
+        <span class="legend">Dvojklik v gridu → přidat notu, Delete → smazat, tažením posuň/délka</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="status" class="status">Stav: připraveno</div>
+  </div>
+
+  <div id="roll" class="card roll-wrap" style="height:480px;">
+    <div id="dropHint" class="legend" style="position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);opacity:.6;pointer-events:none;">
+      Přetáhni sem .mid soubor…
+    </div>
+    <div style="display:flex; min-width: 1000px;">
+      <div id="keys" class="keys"></div>
+      <div style="flex:1; min-width:800px;">
+        <div id="ruler" class="ruler"></div>
+        <div id="gridArea" class="grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Vybraná nota</h3>
+    <div class="row" style="gap:16px; flex-wrap:wrap">
+      <div>Pitch (MIDI): <span id="selPitch">—</span></div>
+      <div>Frekvence: <span id="selFreq">—</span></div>
+      <div>Start (takt.čtvrti): <span id="selStart">—</span></div>
+      <div>Délka (čtvrti): <span id="selDur">—</span></div>
+      <div>Velocity: <span id="selVel">—</span></div>
+    </div>
+    <p class="muted">Vzorec: <code>f = 440 * 2^((n − 69) / 12)</code></p>
+  </div>
+</div>
+
+<!-- Knihovny -->
+<script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
+
+<script type="module">
+  // Přidáno: znovupoužitelné midi utility
+  import { midiToFreq, midiNoteName } from '../js/midi.js';
+
+  // ==== utils ====
+  const $ = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>[...r.querySelectorAll(s)];
+  const status = (msg)=> $('#status').textContent = 'Stav: ' + msg;
+
+  // ==== UI refs ====
+  const fileEl = $('#file');
+  const demoSelect = $('#demoSelect');
+  const trackSel = $('#track');
+  const tempoEl = $('#tempo');
+  const ppqEl = $('#ppq');
+  const gridEl = $('#grid');
+  const btnPlay = $('#btnPlay');
+  const btnStop = $('#btnStop');
+  const btnClearSel = $('#btnClearSel');
+
+  const roll = $('#roll');
+  const dropHint = $('#dropHint');
+  const keysEl = $('#keys');
+  const rulerEl = $('#ruler');
+  const gridElArea = $('#gridArea');
+
+  const selPitch = $('#selPitch');
+  const selFreq = $('#selFreq');
+  const selStart = $('#selStart');
+  const selDur = $('#selDur');
+  const selVel = $('#selVel');
+
+  // ==== piano-roll config ====
+  const MIN_NOTE = 36;  // C2
+  const MAX_NOTE = 84;  // C6
+  const ROW_H = 16;     // px per semitone
+  const NOTE_H = 14;    // visual height
+  let   PX_PER_Q = 96;  // px per quarter (editable)
+  let   GRID_DIV = 4;   // quarters per measure divider (1/x)
+
+  // state
+  let midi = null;
+  let notes = []; // flat array of current track notes: {id, pitch(midi), timeQ, durQ, vel}
+  let selectedId = null;
+  let drag = null; // {id, type:'move'|'resize', startX, startY, orig}
+
+  // Tone.js synth/transport
+  // synth is created lazily after a user gesture to avoid autoplay/context errors
+  let synth = null;
+  // initial BPM will be applied when starting playback
+
+  // ==== layout builders ====
+  function buildKeys(){
+    keysEl.innerHTML = '';
+    for (let n = MAX_NOTE; n >= MIN_NOTE; n--){
+      const d = document.createElement('div');
+      d.className = 'key';
+      // značky na C
+      const name = midiNoteName(n);
+      d.textContent = name.endsWith('C') ? name : '';
+      d.style.height = ROW_H + 'px';
+      keysEl.appendChild(d);
+    }
+    keysEl.style.width = '72px';
+  }
+
+  function buildRuler(){
+    rulerEl.innerHTML = '';
+    const totalQ = estimateTotalQ();
+    const px = totalQ * PX_PER_Q + 200;
+    rulerEl.style.width = px + 'px';
+    const measEveryQ = 4; // 4/4
+    for (let q=0; q<=totalQ+16; q++){
+      const tick = document.createElement('div');
+      tick.style.position = 'absolute';
+      tick.style.left = Math.round(q * PX_PER_Q) + 'px';
+      tick.style.height = '100%';
+      tick.style.width = '1px';
+      tick.style.background = (q % measEveryQ === 0) ? 'var(--muted)' : 'var(--border)';
+      tick.title = `q=${q}`;
+      rulerEl.appendChild(tick);
+      if (q % measEveryQ === 0){
+        const lbl = document.createElement('div');
+        lbl.style.position = 'absolute';
+        lbl.style.left = Math.round(q * PX_PER_Q + 4) + 'px';
+        lbl.style.bottom = '0';
+        lbl.textContent = (q/measEveryQ)+1;
+        rulerEl.appendChild(lbl);
+      }
+    }
+  }
+
+  function estimateTotalQ(){
+    if (!notes.length) return 32;
+    let end = 0;
+    for (const n of notes) end = Math.max(end, n.timeQ + n.durQ);
+    return Math.max(32, Math.ceil(end + 4));
+  }
+
+  function yForPitch(p){ return (MAX_NOTE - p) * ROW_H + 1; }
+  function pitchForY(y){ return Math.max(MIN_NOTE, Math.min(MAX_NOTE, MAX_NOTE - Math.floor(y / ROW_H))); }
+
+  function xForQ(q){ return Math.round(q * PX_PER_Q); }
+  function qForX(x){ return x / PX_PER_Q; }
+
+  function quantizeQ(q){
+    const step = 1/Math.max(1, Number(GRID_DIV));
+    return Math.round(q / step) * step;
+  }
+
+  function redrawGrid(){
+    gridElArea.innerHTML = '';
+    const totalQ = estimateTotalQ();
+    gridElArea.style.width = (totalQ * PX_PER_Q + 200) + 'px';
+    gridElArea.style.height = ((MAX_NOTE - MIN_NOTE + 1) * ROW_H) + 'px';
+    gridElArea.style.backgroundImage =
+      `linear-gradient(to right, var(--panel-2) 1px, transparent 1px),
+       linear-gradient(to bottom, var(--panel-2) 1px, transparent 1px)`;
+    gridElArea.style.backgroundSize = `${PX_PER_Q / Math.max(1, GRID_DIV)}px ${ROW_H}px`;
+
+    // notes
+    for (const n of notes){
+      const el = document.createElement('div');
+      el.className = 'note';
+      el.dataset.id = n.id;
+      el.style.left = xForQ(n.timeQ) + 'px';
+      el.style.top  = yForPitch(n.pitch) + 'px';
+      el.style.width = Math.max(8, xForQ(n.durQ)) + 'px';
+      el.style.height = NOTE_H + 'px';
+      if (n.id === selectedId) el.classList.add('selected');
+
+      const rz = document.createElement('div');
+      rz.className = 'resize';
+      el.appendChild(rz);
+
+      // events
+      el.addEventListener('mousedown', (e)=>{
+        e.preventDefault();
+        selectNote(n.id);
+        const rect = el.getBoundingClientRect();
+        const isResize = (e.clientX - rect.left) > (rect.width - 10);
+        drag = {
+          id: n.id,
+          type: isResize ? 'resize' : 'move',
+          startX: e.clientX,
+          startY: e.clientY,
+          orig: { timeQ: n.timeQ, pitch: n.pitch, durQ: n.durQ }
+        };
+      });
+
+      gridElArea.appendChild(el);
+    }
+  }
+
+  function selectNote(id){
+    selectedId = id;
+    $$('.note', gridElArea).forEach(n => n.classList.toggle('selected', n.dataset.id == id));
+    updateSelectedPanel();
+  }
+
+  function updateSelectedPanel(){
+    const n = notes.find(x => x.id === selectedId);
+    if (!n){
+      selPitch.textContent = selFreq.textContent = selStart.textContent = selDur.textContent = selVel.textContent = '—';
+      return;
+    }
+    selPitch.textContent = `${n.pitch} (${midiNoteName(n.pitch)})`;
+    selFreq.textContent  = midiToFreq(n.pitch).toFixed(2) + ' Hz';
+    selStart.textContent = n.timeQ.toFixed(3);
+    selDur.textContent   = n.durQ.toFixed(3);
+    selVel.textContent   = n.vel.toFixed(2);
+  }
+
+  // ==== editing ====
+  gridElArea.addEventListener('dblclick', (e)=>{
+    const r = gridElArea.getBoundingClientRect();
+    const x = e.clientX - r.left + gridElArea.scrollLeft;
+    const y = e.clientY - r.top  + gridElArea.scrollTop;
+    const timeQ = quantizeQ(qForX(x));
+    const pitch = pitchForY(y);
+    const durQ  = 1; // čtvrťová default
+    const vel   = 0.9;
+    const id = crypto.randomUUID();
+    notes.push({ id, pitch, timeQ, durQ, vel });
+    selectNote(id);
+    redrawGrid(); buildRuler(); status('Přidána nota');
+  });
+
+  document.addEventListener('keydown', (e)=>{
+    if (e.key === 'Delete' && selectedId){
+      const idx = notes.findIndex(n => n.id === selectedId);
+      if (idx >= 0){ notes.splice(idx,1); selectedId = null; redrawGrid(); buildRuler(); status('Smazáno'); updateSelectedPanel(); }
+    }
+  });
+
+  document.addEventListener('mousemove', (e)=>{
+    if (!drag) return;
+    const n = notes.find(x => x.id === drag.id);
+    if (!n) return;
+
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+
+    if (drag.type === 'move'){
+      const dtQ = dx / PX_PER_Q;
+      const newQ = quantizeQ(drag.orig.timeQ + dtQ);
+      const newP = pitchForY(yForPitch(drag.orig.pitch) + dy);
+      n.timeQ = Math.max(0, newQ);
+      n.pitch = newP;
+    } else {
+      const dQ = dx / PX_PER_Q;
+      n.durQ = Math.max(1/16, quantizeQ(drag.orig.durQ + dQ));
+    }
+    redrawGrid();
+    selectNote(n.id);
+  });
+
+  document.addEventListener('mouseup', ()=>{ drag = null; });
+
+  // ==== MIDI load/parse ====
+  async function loadMidiFromArrayBuffer(buf){
+    try {
+      // try direct ArrayBuffer first, fallback to Uint8Array if needed
+      try {
+        midi = new Midi(buf);
+      } catch (innerErr) {
+        console.warn('[MIDI] direct ArrayBuffer parse failed, retrying with Uint8Array', innerErr);
+        midi = new Midi(new Uint8Array(buf));
+      }
+
+      status(`Načteno: ${midi.header.ppq} PPQ, tempo ${midi.header.tempos?.[0]?.bpm ?? '—'} BPM, tracks=${midi.tracks.length}`);
+      // naplnit select — pouze stopy s nenulovým počtem not
+      trackSel.innerHTML = '';
+      midi.tracks.forEach((t,i)=>{
+        if (!t.notes || !t.notes.length) return; // přeskočit prázdné stopy
+        const opt = document.createElement('option');
+        const name = t.name || `Track ${i+1}`;
+        opt.value = i; opt.textContent = `${i+1}. ${name} (notes: ${t.notes.length})`;
+        trackSel.appendChild(opt);
+      });
+      // default: první track s notami (pokud existuje)
+      const idx = midi.tracks.findIndex(t => t.notes && t.notes.length);
+      trackSel.value = String(idx >= 0 ? idx : 0);
+      hydrateFromTrack(Number(trackSel.value));
+    } catch (err){
+      console.error(err);
+      status('Chyba při parsování MIDI');
+    }
+  }
+
+  function hydrateFromTrack(i){
+    const t = midi.tracks[i];
+    if (!t) return;
+    // převod na quarter units (MIDI knihovna dává čas v sekundách/beatách; toSeconds/ toTicks dostupné, t.humanize)
+    // @tonejs/midi notes mají .time a .duration v sekundách (default). Použijeme tempo z kontroly.
+    const bpm = Number(tempoEl.value) || 120;
+    const secPerQ = 60 / bpm;
+    notes = t.notes.map(n => ({
+      id: crypto.randomUUID(),
+      pitch: n.midi,
+      timeQ: n.time / secPerQ,
+      durQ:  n.duration / secPerQ,
+      vel:   n.velocity ?? 0.8
+    }));
+    buildRuler(); redrawGrid(); selectedId = null; updateSelectedPanel();
+    dropHint.style.display = 'none';
+  }
+
+  // ==== Playback ====
+  let part = null;
+  async function rebuildAndPlay(){
+    // Ensure AudioContext is started by a user gesture
+    await Tone.start();
+    // create synth on first user gesture/start
+    if (!synth) {
+      synth = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.3 }
+      }).toDestination();
+    }
+    Tone.Transport.bpm.value = Number(tempoEl.value) || 120;
+
+    if (part){ part.dispose(); part = null; }
+    // převeď do sekund
+    const bpm = Tone.Transport.bpm.value;
+    const secPerQ = 60 / bpm;
+
+    const evs = notes.map(n => ({
+      time: n.timeQ * secPerQ,
+      dur:  n.durQ * secPerQ,
+      midi: n.pitch,
+      vel:  n.vel
+    }));
+
+    part = new Tone.Part((time, ev)=>{
+      const freq = midiToFreq(ev.midi);
+      synth.triggerAttackRelease(freq, ev.dur, time, ev.vel);
+      // highlight právě hrající notu
+      const el = gridElArea.querySelector(`.note[data-id="${notes.find(x=>x.pitch===ev.midi && Math.abs(x.timeQ*secPerQ - ev.time)<1e-3)?.id}"]`);
+      if (el){ el.style.opacity = '1.0'; setTimeout(()=>{ el.style.opacity='.9'; }, Math.min(300, ev.dur*1000)); }
+    }, evs.map(e => [e.time, e]));
+
+    part.start(0);
+    const endSec = Math.max(1, ...evs.map(e => e.time + e.dur)) + 0.25;
+    Tone.Transport.stop();
+    Tone.Transport.position = 0;
+    Tone.Transport.scheduleOnce(()=> {
+      Tone.Transport.stop();
+      status('Stop (konec skladby)');
+    }, endSec);
+    Tone.Transport.start();
+    status('Přehrávání…');
+  }
+
+  // ==== Controls ====
+  tempoEl.addEventListener('input', ()=> buildRuler());
+  ppqEl.addEventListener('input', ()=>{
+    PX_PER_Q = Math.max(8, Math.min(320, Number(ppqEl.value) || 96));
+    buildRuler(); redrawGrid();
+  });
+  gridEl.addEventListener('input', ()=>{
+    GRID_DIV = Math.max(1, Math.min(16, Number(gridEl.value) || 4));
+    redrawGrid();
+  });
+
+  trackSel.addEventListener('change', ()=> hydrateFromTrack(Number(trackSel.value)));
+
+  btnPlay.addEventListener('click', rebuildAndPlay);
+  btnStop.addEventListener('click', ()=>{ Tone.Transport.stop(); status('Stop'); });
+
+  btnClearSel.addEventListener('click', ()=> {
+    if (!selectedId) return;
+    const i = notes.findIndex(n => n.id === selectedId);
+    if (i >= 0) { notes.splice(i,1); selectedId = null; redrawGrid(); buildRuler(); updateSelectedPanel(); }
+  });
+
+  fileEl.addEventListener('change', async (e)=>{
+    const f = e.target.files[0];
+    if (!f) return;
+    status('Načítám soubor…');
+    const buf = await f.arrayBuffer();
+    await loadMidiFromArrayBuffer(buf);
+  });
+
+  // Drag & drop
+  ;['dragenter','dragover'].forEach(ev => roll.addEventListener(ev, e=>{ e.preventDefault(); dropHint.style.opacity = .9; }));
+  ;['dragleave','drop'].forEach(ev => roll.addEventListener(ev, e=>{ e.preventDefault(); dropHint.style.opacity = .6; }));
+  roll.addEventListener('drop', async (e)=>{
+    const f = e.dataTransfer.files?.[0];
+    if (!f) return;
+    const buf = await f.arrayBuffer();
+    await loadMidiFromArrayBuffer(buf);
+  });
+
+  async function loadMidiUrl(url){
+    console.log('[MIDI] loadMidiUrl() url=', url);
+    try {
+      status('Načítám: ' + url);
+      const resp = await fetch(url);
+      console.log('[MIDI] loadMidiUrl fetch status=', resp.status);
+      if (!resp.ok) {
+        console.error('[MIDI] loadMidiUrl fetch failed with status', resp.status);
+        status('Chyba při načítání ' + url + ' (status ' + resp.status + ')');
+        return;
+      }
+      const buf = await resp.arrayBuffer();
+      console.log('[MIDI] loadMidiUrl arrayBuffer byteLength=', buf.byteLength);
+      await loadMidiFromArrayBuffer(buf);
+    } catch (e){
+      console.error('[MIDI] loadMidiUrl error', e);
+      status('Chyba při načítání ' + url);
+    }
+  }
+
+  // Populate demoSelect with files from ../assets/audio/ and add final "upload" option
+  async function populateDemoSelect(){
+    console.log('[MIDI] populateDemoSelect() start');
+    if (!demoSelect) {
+      console.warn('[MIDI] demoSelect element not found');
+      return;
+    }
+    demoSelect.innerHTML = '<option value="">Vyber soubor</option>';
+    status('Kontroluji zdroje demo MIDI…');
+
+    // 1) Try manifest file first (recommended)
+    try {
+      status('Zkouším manifest ../assets/audio/list.json …');
+      const resp = await fetch('../assets/audio/list.json', { cache: 'no-store' });
+      if (resp.ok) {
+        const json = await resp.json();
+        // support both "audio" and "midi" keys in manifest
+        const arr = Array.isArray(json.audio) ? json.audio : (Array.isArray(json.midi) ? json.midi : []);
+        if (arr.length) {
+          console.log('[MIDI] populateDemoSelect: manifest found', arr.length);
+          for (const it of arr) {
+            const file = it.file || it.filename || it.path;
+            if (!file) continue;
+            const url = (/^https?:\/\//i.test(file) || file.startsWith('/')) ? file : ('../assets/audio/' + file);
+            const name = it.name || url.split('/').pop();
+            const opt = document.createElement('option');
+            opt.value = url;
+            opt.textContent = it.autor ? `${name} — ${it.autor}` : name;
+            demoSelect.appendChild(opt);
+          }
+          status(`Seznam demo MIDI načten (manifest): ${arr.length} položek`);
+          console.log('[MIDI] populateDemoSelect done (manifest)');
+        } else {
+          console.info('[MIDI] manifest OK ale prázdné pole, pokračuji na fallback');
+        }
+      } else {
+        console.info('[MIDI] manifest not found or non-ok, status=', resp.status);
+      }
+    } catch (e) {
+      console.warn('[MIDI] manifest fetch failed', e);
+    }
+
+    // always add upload option at end (fallback or after manifest)
+    const upOpt = document.createElement('option');
+    upOpt.value = '__upload__';
+    upOpt.textContent = 'Nahrát soubor...';
+    demoSelect.appendChild(upOpt);
+    status('Demo seznam připraven');
+    console.log('[MIDI] populateDemoSelect() done');
+  }
+
+  // handle selection change: load asset or trigger upload dialog
+  if (demoSelect){
+    demoSelect.addEventListener('change', async (e)=>{
+      console.log('[MIDI] demoSelect change value=', demoSelect.value);
+      const v = demoSelect.value;
+      if (!v) return;
+      if (v === '__upload__' ) {
+        console.log('[MIDI] demoSelect triggered upload dialog');
+        fileEl.click();
+        // reset back to placeholder after opening
+        demoSelect.value = '';
+        return;
+      }
+      // load selected asset
+      await loadMidiUrl(v);
+      // reset selection to placeholder (optional)
+      demoSelect.value = '';
+    });
+  }
+
+  // populate demo select on init
+  console.log('[MIDI] init: calling populateDemoSelect()');
+  populateDemoSelect();
+
+  // Init
+  buildKeys(); buildRuler(); redrawGrid();
+  status('Připraveno. Nahraj .mid nebo klikni „Načíst demo MIDI“.');
+</script>
+</body>

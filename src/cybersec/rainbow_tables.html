@@ -67,6 +67,7 @@
           <div style="margin-top:8px">
             <button id="btnGen" class="btn primary">Generovat DB</button>
             <button id="btnClear" class="btn">Vyčistit</button>
+            <button id="btnDownload" class="btn">Stáhnout CSV</button>
           </div>
         </div>
     
@@ -95,7 +96,7 @@
       <h2>Útočník - lámání hesel</h2>
       <div id="configPanel" class="grid2" style="max-width:100%;">
         <div class="config-col" style="max-width:560px;">
-          <label>Počet zkoušených kandidátů (z wordlistu) / limit:
+          <label>Počet zkoušených kandidátů:
             <input id="limit" type="number" min="1" max="1000000" value="5000" class="small-input">
           </label>
     
@@ -104,8 +105,13 @@
               <option value="bruteforce">Brute-force</option>
               <option value="wordlist" selected>Wordlist</option>
               <option value="wordlist_salted">Wordlist + salt</option>
-              <option value="rainbow">Rainbow table (precompute hash→pwd)</option>
+              <option value="rainbow">Rainbow table</option>
             </select>
+          </label>
+
+          <!-- new: known random salt checkbox for attacker -->
+          <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="knownRandomSalt"> Znám per-user random salt
           </label>
     
           <div style="margin-top:8px">
@@ -171,7 +177,7 @@
   const $ = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 
-  import {loadWordlistFromPath, digestText, makeSalt, randHex, randEmail, randDate, WORDLISTS, getWordlistEntry } from '../js/cybersec.js';
+  import {loadWordlistFromPath, digestText, makeSalt, randHex, randEmail, randDate, WORDLISTS, getWordlistEntry, loadCommonNames, loadCommonSurnames } from '../js/cybersec.js';
 
   // leak-specific wordlist state (used for generating leaked DB pool)
   let leakWordlist = [];
@@ -197,14 +203,18 @@
 
   const btnGen = $('#btnGen');
   const btnClear = $('#btnClear');
+  const btnDownload = $('#btnDownload');
   const btnStart = $('#btnStart');
   const btnStop  = $('#btnStop');
-
+  const knownRandomSaltEl = $('#knownRandomSalt');
+  
   const dbTableBody = $('#dbTable tbody');
   const consoleEl = $('#console');
   const progressEl = $('#progress');
 
   // State
+  let usernames = [];
+  let surnames = [];
   let db = []; // {email, hash, salt, regdate, cracked:false, plain:null}
   let running = false;
   let stopRequested = false;
@@ -238,7 +248,7 @@
     
     let numberOfRandomPasswords = 0;
     for (let i=0;i<n;i++){
-      const email = randEmail();
+      const email = randEmail(usernames, surnames);
       // generate regdate before salt if salt may be derived from it
       const regdate = randDate();
       // pick a password from pool mostly (to allow cracking)
@@ -437,7 +447,17 @@
         // derive salt same way as during DB generation
         let salt = '';
         if (saltMode === 'per-user') {
-          salt = row.salt || '';
+          // if attacker does not know per-user random salts, skip this row
+          if (!knownRandomSaltEl || !knownRandomSaltEl.checked) {
+            if (row.salt) {
+              log(`✖ přeskočeno id=${row.id} (per-user salt, neznámý)`); 
+              progressEl.value++;
+              continue;
+            }
+            salt = '';
+          } else {
+            salt = row.salt || '';
+          }
         } else if (saltMode === 'regdate') {
           salt = makeSalt(saltLen, row.regdate, 'regdate');
         }
@@ -554,6 +574,25 @@
     progressEl.value = 0;
   });
 
+  // download CSV of generated DB (email,hash,reg_date)
+  btnDownload.addEventListener('click', ()=> {
+    if (!db || db.length === 0) { alert('Žádná data k exportu.'); return; }
+    const esc = v => v == null ? '' : '"' + String(v).replace(/"/g,'""') + '"';
+    const header = ['email','hash','reg_date'].join(',') + '\n';
+    const rows = db.map(r => [esc(r.email), esc(r.hash), esc(r.regdate)].join(',')).join('\n');
+    const csv = header + rows;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'leaked_db.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log(`CSV export: ${db.length} řádků staženo.`);
+  });
+  
   btnStart.addEventListener('click', async ()=>{
     if (db.length === 0) { alert('Nejprve vygeneruj DB.'); return; }
     btnStart.disabled = true;
@@ -562,6 +601,9 @@
     const limit = Math.max(1, Math.min(1000000, parseInt(limitEl.value)||5000));
     const mode = attackModeEl.value;
     stopRequested = false;
+    // time stamp
+    log(`Spouštím útok (mode=${mode}, limit=${limit})...`);
+    const startTime = performance.now();
     if (mode === 'rainbow') {
       await attackRainbow(limit);
     } else if (mode === 'wordlist') {
@@ -573,6 +615,8 @@
     }
     btnStart.disabled = false;
     btnStop.disabled = true;
+    const endTime = performance.now();
+    log(`Útok trval ${(endTime - startTime).toFixed(2)} ms.`);
     log('Konec útoku.');
   });
 
@@ -587,6 +631,10 @@
     // preload both attacker and leak wordlists & previews
     await loadWordlistGeneric({ choiceEl: wordlistChoiceEl, fileInputEl: fileEl, previewEl: previewEl, targetVar: 'wordlist' });
     await loadWordlistGeneric({ choiceEl: leakWordlistChoiceEl, fileInputEl: leakFileEl, previewEl: leakPreviewEl, targetVar: 'leakWordlist' });
+    usernames = await loadCommonNames();
+    log('Common names loaded.');
+    surnames = await loadCommonSurnames();
+    log('Common surnames loaded.');
   })();
 </script>
 </body>

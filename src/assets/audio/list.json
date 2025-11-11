@@ -1,0 +1,29 @@
+{
+    "midi": [
+        {
+            "name": "Never Gonna Give You Up",
+            "file": "Never-Gonna-Give-You-Up.mid",
+            "autor": "Rick Astley"
+        },
+        {
+            "file": "Pirates_of_the_Caribbean-He's_a_Pirate.mid",
+            "name": "He's a Pirate",
+            "autor": "Klaus Badelt"
+        },
+        {
+            "file": "Queen-Bohemian_Rhapsody.mid",
+            "name": "Bohemian Rhapsody",
+            "autor": "Queen"
+        },
+        {
+            "file": "Star-Wars-Theme.mid",
+            "name": "Star Wars Theme",
+            "autor": "John Williams"
+        },
+        {
+            "file": "Super_Mario_64-Medley.mid",
+            "name": "Super Mario 64 Medley",
+            "autor": "Koji Kondo"
+        }
+    ]
+}
