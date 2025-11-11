@@ -20,12 +20,12 @@
           "tags": ["čas", "hodiny", "analogové", "digitální"]
         },
         {
-        "id": "worked_hours",
-        "name": "Výpočet odpracovaných hodin",
-        "desc": "Spočítá rozdíl mezi počátečním a koncovým časem (v minutách a ve formátu h:min). Přechod přes půlnoc je podporován.",
-        "difficulty": "🟢",
-        "path": "time/worked_hours.html",
-        "tags": ["čas", "hodiny", "minuty"]
+          "id": "worked_hours",
+          "name": "Výpočet odpracovaných hodin",
+          "desc": "Spočítá rozdíl mezi počátečním a koncovým časem (v minutách a ve formátu h:min). Přechod přes půlnoc je podporován.",
+          "difficulty": "🟢",
+          "path": "time/worked_hours.html",
+          "tags": ["čas", "hodiny", "minuty"]
         }
       ]
     },

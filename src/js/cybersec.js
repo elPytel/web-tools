@@ -1,22 +1,4 @@
-/**
- * Compute base-2 logarithm.
- * @param {number} n - Input number (must be > 0).
- * @returns {number} Base-2 logarithm of n.
- */
-export function log2(n) { return Math.log(n) / Math.log(2); }
-
-/**
- * Classify key/entropy strength into human label and class.
- * @param {number} bits - Entropy in bits.
- * @returns {{label:string, cls:string}} Classification object.
- */
-export function classifyStrength(bits) {
-  if (bits >= 90) return {label:'Very strong', cls:'ok'};
-  if (bits >= 70) return {label:'Strong', cls:'ok'};
-  if (bits >= 50) return {label:'Medium', cls:'warn'};
-  return {label:'Weak', cls:'bad'};
-}
-
+// ========== Cybersecurity utilities ==========
 /**
  * Compute integer power using BigInt (fast exponentiation).
  * @param {number|string|bigint} base - Base value.
@@ -295,4 +277,213 @@ export async function loadCommonSurnames(file=COMMON_SURNAMES_FILE){
   const lines = text.split(/\r?\n/);
   const surnames = lines.map(line => line.trim().toLowerCase()).filter(line => line !== '');
   return surnames;
+}
+
+// ========== Password generation utils ==========
+export const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+export const LOWER = 'abcdefghijklmnopqrstuvwxyz';
+export const DIGIT = '0123456789';
+export const SYMS  = `!@#$%^&*()-_=+[]{};:,.?/\\'"\`~|<>`;
+export const AMBIG = new Set(['0','O','o','1','l','I','|','\\',"'",'"','`']);
+
+/**
+ * Build alphabet string from flags (pure).
+ * @param {{useUpper:boolean,useLower:boolean,useDigits:boolean,useSymbols:boolean,avoidAmb:boolean}} flags
+ * @returns {string}
+ */
+export function buildAlphabetFromFlags(flags={}) {
+  const { useUpper=false, useLower=false, useDigits=false, useSymbols=false, avoidAmb=false } = flags;
+  let a = '';
+  if (useUpper) a += UPPER;
+  if (useLower) a += LOWER;
+  if (useDigits) a += DIGIT;
+  if (useSymbols) a += SYMS;
+  if (avoidAmb) a = [...a].filter(ch => !AMBIG.has(ch)).join('');
+  return a;
+}
+
+/**
+ * Compute base-2 logarithm.
+ * @param {number} n - Input number (must be > 0).
+ * @returns {number} Base-2 logarithm of n.
+ */
+export function log2(n) { return Math.log(n) / Math.log(2); }
+
+/**
+ * Classify key/entropy strength into human label and class.
+ * @param {number} bits - Entropy in bits.
+ * @returns {{label:string, cls:string}} Classification object.
+ */
+export function classifyStrength(bits) {
+  if (bits >= 90) return {label:'Very strong', cls:'ok'};
+  if (bits >= 70) return {label:'Strong', cls:'ok'};
+  if (bits >= 50) return {label:'Medium', cls:'warn'};
+  return {label:'Weak', cls:'bad'};
+}
+
+/**
+ * unbiased random index generator using crypto
+ * @param {number} maxExclusive
+ * @returns {number}
+ */
+export function randIndex(maxExclusive){
+  const max = Math.floor(maxExclusive);
+  if (max <= 0) return 0;
+  const range = 256 - (256 % max);
+  let x;
+  do {
+    x = crypto.getRandomValues(new Uint8Array(1))[0];
+  } while (x >= range);
+  return x % max;
+}
+
+/**
+ * Fisher-Yates shuffle (works in-place but returns array)
+ * @param {Array} array
+ * @returns {Array}
+ */
+export function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = randIndex(i + 1);
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+/**
+ * Generate single password (pure).
+ * @param {number} len
+ * @param {string} alphabet
+ * @param {Object} opts - {ensureEach:boolean, useUpper, useLower, useDigits, useSymbols}
+ * @returns {string}
+ */
+export function generateOne(len, alphabet, opts={}){
+  const ensureEach = Boolean(opts.ensureEach);
+  const arr = [...alphabet];
+  if (!arr.length) return '';
+  const chunks = [];
+
+  if (ensureEach) {
+    const pools = [];
+    if (opts.useUpper) pools.push([...UPPER].filter(c => alphabet.includes(c)));
+    if (opts.useLower) pools.push([...LOWER].filter(c => alphabet.includes(c)));
+    if (opts.useDigits) pools.push([...DIGIT].filter(c => alphabet.includes(c)));
+    if (opts.useSymbols) pools.push([...SYMS].filter(c => alphabet.includes(c)));
+
+    for (const p of pools) {
+      chunks.push(p.length ? p[randIndex(p.length)] : arr[randIndex(arr.length)]);
+    }
+  }
+
+  while (chunks.length < len) {
+    chunks.push(arr[randIndex(arr.length)]);
+  }
+  return shuffle(chunks).slice(0, len).join('');
+}
+
+/**
+ * Generate multiple passwords (pure).
+ * @param {number} len
+ * @param {number} count
+ * @param {Object} flags - same flags as buildAlphabetFromFlags + ensureEach
+ * @returns {string[]}
+ */
+export function generatePasswords(len, count, flags={}) {
+  const alphabet = buildAlphabetFromFlags(flags);
+  const list = [];
+  for (let i=0;i<count;i++){
+    list.push(generateOne(len, alphabet, flags));
+  }
+  return list;
+}
+
+/**
+ * Compute password metrics (combos, bits, classification, crack time) for given config (pure).
+ * @param {number} len - password length
+ * @param {Object} flags - same flags as buildAlphabetFromFlags
+ * @param {Object} rateParams - {mode, rate, ghz, instr, ms}
+ * @returns {{combos:bigint, combosFmt:string, bits:number, cls:{label:string,cls:string}, timeSec:number, timeText:string}}
+ */
+export function computePasswordStats(len, flags={}, rateParams={}) {
+  const alphabet = buildAlphabetFromFlags(flags);
+  const N = Math.max(0, alphabet.length);
+  if (N === 0) {
+    return { combos: 0n, combosFmt: '—', bits: 0, cls: {label:'—', cls:''}, timeSec: NaN, timeText:'—' };
+  }
+
+  // total combinations as BigInt
+  const combos = bigPow(N, len);
+
+  // bits of entropy (approx)
+  const bits = (N > 0) ? (len * log2(N)) : 0;
+  const cls = classifyStrength(bits);
+
+  // compute rate info
+  const { rate, perHashSec } = computeRateAndHashTime(rateParams);
+
+  // compute time in seconds (try to handle very large BigInt safely)
+  let timeSec;
+  if (!Number.isFinite(rate)) {
+    // rate === Infinity => effectively zero time to enumerate
+    timeSec = 0;
+  } else if (rate <= 0) {
+    timeSec = Infinity;
+  } else {
+    const MAX_SAFE = Number.MAX_SAFE_INTEGER;
+
+    // if combos fits into a safe Number, do precise floating division
+    if (combos <= BigInt(MAX_SAFE)) {
+      timeSec = Number(combos) / rate;
+    } else {
+      // approximate by integer division using integer part of rate to avoid losing BigInt precision
+      const rateInt = Math.max(1, Math.floor(rate));
+      const secondsBig = combos / BigInt(rateInt);
+      timeSec = (secondsBig > BigInt(MAX_SAFE)) ? Infinity : Number(secondsBig);
+    }
+  }
+
+  const timeText = Number.isFinite(timeSec) ? secondsToHuman(timeSec) : secondsToHuman(Infinity);
+  const combosFmt = formatBigInt(combos);
+
+  return { combos, combosFmt, bits, cls, timeSec, timeText };
+}
+
+/**
+ * Build example table rows (pure) — returns array of objects for UI rendering.
+ * @param {Object} flags - buildAlphabetFromFlags flags
+ * @param {number[]} lengths - array of lengths
+ * @param {Object} rateParams - computeRateAndHashTime params
+ * @returns {Array<{L:number, lower:boolean, upper:boolean, digits:boolean, syms:boolean, combosFmt:string, secText:string}>}
+ */
+export function getExampleTableRows(flags={}, lengths=[3,8,12,17], rateParams={}) {
+  const alphabet = buildAlphabetFromFlags(flags);
+  const N = Math.max(0, alphabet.length);
+  const rows = [];
+  const { rate, perHashSec } = computeRateAndHashTime(rateParams);
+
+  for (const L of lengths) {
+    let combos = 0n;
+    try { combos = bigPow(N, L); } catch(e){ combos = 0n; }
+    const combosFmt = (N === 0) ? '—' : formatBigInt(combos);
+
+    let sec;
+    if (N === 0) sec = NaN;
+    else if (perHashSec !== null) {
+      sec = (combos > BigInt(Number.MAX_SAFE_INTEGER)) ? Infinity : Number(combos) * perHashSec;
+    } else {
+      sec = (!isFinite(rate) || rate === 0) ? Infinity : ((combos > BigInt(Number.MAX_SAFE_INTEGER)) ? Infinity : Number(combos) / rate);
+    }
+    const secText = (Number.isFinite(sec)) ? `${sec.toFixed(6)} sekund (${secondsToHuman(sec)})` : '≈ nekonečno';
+
+    rows.push({
+      L,
+      lower: Boolean(flags.useLower),
+      upper: Boolean(flags.useUpper),
+      digits: Boolean(flags.useDigits),
+      syms: Boolean(flags.useSymbols),
+      combosFmt,
+      secText
+    });
+  }
+  return rows;
 }
