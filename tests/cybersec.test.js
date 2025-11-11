@@ -1,5 +1,29 @@
 import { describe, it, expect, vi } from 'vitest';
-import { log2, classifyStrength, bigPow, formatBigInt, secondsToHuman, computeRateAndHashTime, getWordlistEntry, randHex, randEmail, randDate, makeSalt, digestText } from '../src/js/cybersec.js';
+import nodeCrypto from 'node:crypto';
+import { log2, classifyStrength, bigPow, formatBigInt, secondsToHuman, computeRateAndHashTime, getWordlistEntry, randHex, randEmail, randDate, makeSalt, digestText, loadWordlistFromPath, loadCommonNames, loadCommonSurnames } from '../src/js/cybersec.js';
+
+// polyfill / test stub for Web Crypto API in Node environment
+// vitest runs in Node where global crypto might be missing; use node:crypto underneath.
+const fakeCrypto = {
+  getRandomValues(buf) {
+    const rnd = nodeCrypto.randomBytes(buf.length);
+    buf.set(rnd);
+    return buf;
+  },
+  subtle: {
+    async digest(algo, data) {
+      // algo like 'SHA-256' -> 'sha256'
+      const alg = String(algo).toLowerCase().replace(/-/g, '');
+      const h = nodeCrypto.createHash(alg);
+      // data can be ArrayBuffer/TypedArray
+      h.update(Buffer.from(data));
+      return h.digest();
+    }
+  }
+};
+
+// ensure global crypto is available for the module under test
+vi.stubGlobal('crypto', fakeCrypto);
 
 describe('cybersec utils', () => {
   it('log2 computes base-2 logarithm', () => {
@@ -93,32 +117,30 @@ describe('cybersec utils', () => {
   });
 
   it('loadWordlistFromPath and loadCommon* functions work with fetch mock', async () => {
-    const { loadWordlistFromPath, loadCommonNames, loadCommonSurnames } = require('../src/js/cybersec.js');
+     // mock fetch for a simple wordlist
+     vi.stubGlobal('fetch', async (path) => {
+       if (path.includes('top_common')) {
+         return { text: async () => 'one\ntwo\nthree\n' };
+       }
+       if (path.endsWith('.csv')) {
+         // header + two rows, gender codes in first column
+         return { text: async () => 'DRUH_JMENA,JMENO\nM,Jan\nF,Marie\n' };
+       }
+       if (path.endsWith('.txt')) {
+         return { text: async () => 'novak\nsvoboda\n' };
+       }
+       return { text: async () => '' };
+     });
 
-    // mock fetch for a simple wordlist
-    vi.stubGlobal('fetch', async (path) => {
-      if (path.includes('top_common')) {
-        return { text: async () => 'one\ntwo\nthree\n' };
-      }
-      if (path.endsWith('.csv')) {
-        // header + two rows, gender codes in first column
-        return { text: async () => 'DRUH_JMENA,JMENO\nM,Jan\nF,Marie\n' };
-      }
-      if (path.endsWith('.txt')) {
-        return { text: async () => 'novak\nsvoboda\n' };
-      }
-      return { text: async () => '' };
-    });
-
-    const wl = await loadWordlistFromPath('path/to/top_common.txt');
-    expect(Array.isArray(wl)).toBeTruthy();
-    expect(wl).toContain('one');
-
-    const names = await loadCommonNames('file.csv', 'M');
-    expect(names).toContain('jan');
-    const surnames = await loadCommonSurnames('file.txt');
-    expect(surnames).toContain('novak');
-    // restore fetch mock
-    vi.unstubAllGlobals();
-  });
-});
+     const wl = await loadWordlistFromPath('path/to/top_common.txt');
+     expect(Array.isArray(wl)).toBeTruthy();
+     expect(wl).toContain('one');
+ 
+     const names = await loadCommonNames('file.csv', 'M');
+     expect(names).toContain('jan');
+     const surnames = await loadCommonSurnames('file.txt');
+     expect(surnames).toContain('novak');
+     // restore fetch mock
+     vi.unstubAllGlobals();
+   });
+ });
