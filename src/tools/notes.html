@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <title>🗒️ Notes – rychlé poznámky a úkoly</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center }
+    .toolbar .grow { flex:1 }
+    .note-wrap { display:grid; gap:12px }
+    .note-grid {
+      display:grid; gap:12px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    .note { position:relative; border:1px solid var(--border); border-radius:12px; padding:10px; background:var(--panel); }
+    .note.pinned { outline:2px solid var(--accent) }
+    .note .title { font-weight:600; margin-bottom:6px }
+    .note .content { white-space:pre-wrap }
+    .note textarea, .note input[type="text"] {
+      width:100%; background:transparent; border:none; resize:vertical; outline:none;
+    }
+    .note textarea { min-height:68px }
+    .note .tags { font-size:.85rem; color:var(--muted); margin-top:6px }
+    .note .actions { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap }
+    .chip { padding:.15rem .5rem; border-radius:999px; border:1px solid var(--border); font-size:.8rem }
+    .color-swatch { width:18px; height:18px; border-radius:4px; border:1px solid #0003; cursor:pointer }
+    .muted { color: var(--muted) }
+    .pin { cursor:pointer }
+    .checklist { display:grid; gap:4px; margin-top:6px }
+    .check-item { display:flex; gap:8px; align-items:center }
+    .arch-head { display:flex; align-items:center; gap:8px; cursor:pointer }
+    .hidden { display:none }
+    .dropzone { border:1px dashed var(--border); border-radius:10px; padding:10px; text-align:center; color:var(--muted) }
+    /* drobná odezva tlačítek */
+    .btn { cursor:pointer }
+  </style>
+</head>
+<body>
+<div class="app">
+  <script type="module" src="../js/site-header.js"></script>
+  <site-header title="🗒️ Notes – poznámky & úkoly"></site-header>
+
+  <div class="card">
+    <div class="toolbar">
+      <input id="search" class="grow" type="search" placeholder="Hledat v názvu, textu nebo #štítcích…" />
+      <button id="btnExport" class="btn">Export JSON</button>
+      <label class="btn">
+        Import JSON
+        <input id="importFile" type="file" accept="application/json" style="display:none" />
+      </label>
+      <button id="btnArchiveToggle" class="btn">Zobrazit archiv</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="note-wrap">
+      <!-- rychlé přidání -->
+      <div class="note" id="quick">
+        <div style="display:grid; gap:8px">
+          <input id="newTitle" type="text" placeholder="Nadpis (volitelné)" />
+          <textarea id="newContent" placeholder="Poznámka nebo seznam úkolů (odděl řádky)."></textarea>
+          <div class="toolbar">
+            <label class="chip">Štítky: <input id="newTags" type="text" placeholder="#škola #práce" style="border:none; outline:none; margin-left:6px" /></label>
+            <div class="toolbar" style="gap:8px">
+              <span class="muted">Barva:</span>
+              <button class="color-swatch" data-color="#ffffff" style="background:#ffffff"></button>
+              <button class="color-swatch" data-color="#fff7ed" style="background:#fff7ed"></button>
+              <button class="color-swatch" data-color="#f0fdf4" style="background:#f0fdf4"></button>
+              <button class="color-swatch" data-color="#f0f9ff" style="background:#f0f9ff"></button>
+              <input id="newColor" type="color" value="#ffffff" title="Vlastní" />
+            </div>
+            <label class="chip"><input id="newChecklist" type="checkbox" /> checklist</label>
+            <span class="grow"></span>
+            <button id="btnAdd" class="btn primary">Přidat</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="muted" style="margin:8px 0">📌 Připnuté</h3>
+        <div id="pinned" class="note-grid"></div>
+      </div>
+
+      <div>
+        <h3 class="muted" style="margin:8px 0">Všechny poznámky</h3>
+        <div id="notes" class="note-grid"></div>
+      </div>
+
+      <div id="archiveBlock" class="hidden">
+        <div class="arch-head">
+          <h3 class="muted" style="margin:8px 0">🗄 Archiv</h3>
+        </div>
+        <div id="archive" class="note-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  // ==== perzistence ====
+  const KEY = 'wt_notes_v1';
+
+  /** @type {Array<Note>} */
+  let data = load();
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (_) { return []; }
+  }
+  function save() {
+    localStorage.setItem(KEY, JSON.stringify(data));
+  }
+
+  // ==== model ====
+  /**
+   * @typedef {Object} Note
+   * @property {string} id
+   * @property {string} title
+   * @property {string} content
+   * @property {string[]} tags
+   * @property {boolean} pinned
+   * @property {boolean} archived
+   * @property {string} color
+   * @property {boolean} checklist
+   * @property {{text:string, done:boolean}[]} [items]
+   * @property {number} createdAt
+   * @property {number} updatedAt
+   */
+
+  const $ = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>[...r.querySelectorAll(s)];
+
+  // UI refs
+  const newTitle = $('#newTitle'), newContent = $('#newContent'), newTags = $('#newTags');
+  const newColor = $('#newColor'), newChecklist = $('#newChecklist'), btnAdd = $('#btnAdd');
+  const pinnedEl = $('#pinned'), notesEl = $('#notes'), archiveEl = $('#archive');
+  const archiveBlock = $('#archiveBlock');
+  const searchEl = $('#search'), importFile = $('#importFile');
+  const btnExport = $('#btnExport'), btnArchiveToggle = $('#btnArchiveToggle');
+
+  // barvy swatche
+  $$('.color-swatch').forEach(btn => {
+    btn.addEventListener('click', ()=> { newColor.value = btn.dataset.color; });
+  });
+
+  // přidání poznámky
+  btnAdd.addEventListener('click', addNote);
+  newContent.addEventListener('keydown', (e)=>{ if (e.ctrlKey && e.key === 'Enter') addNote(); });
+
+  function parseTags(s) {
+    return (s || '')
+      .split(/[\s,]+/)
+      .map(t => t.trim())
+      .filter(Boolean)
+      .map(t => t.startsWith('#') ? t : '#'+t);
+  }
+
+  function addNote() {
+    const title = newTitle.value.trim();
+    const content = newContent.value;
+    if (!title && !content.trim()) return;
+
+    const now = Date.now();
+    const note = {
+      id: crypto.randomUUID(),
+      title,
+      content,
+      tags: parseTags(newTags.value),
+      pinned: false,
+      archived: false,
+      color: newColor.value || '#ffffff',
+      checklist: !!newChecklist.checked,
+      items: undefined,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    // pokud je checklist, rozsekej řádky na položky
+    if (note.checklist) {
+      note.items = content.split(/\r?\n/).map(t => ({ text: t, done: false })).filter(i => i.text.trim() !== '');
+      note.content = '';
+    }
+
+    data.unshift(note);
+    save();
+    clearComposer();
+    render();
+  }
+
+  function clearComposer(){
+    newTitle.value = '';
+    newContent.value = '';
+    newTags.value = '';
+    newChecklist.checked = false;
+    newColor.value = '#ffffff';
+  }
+
+  // vyhledávání
+  searchEl.addEventListener('input', render);
+
+  // export/import
+  btnExport.addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'notes_export.json';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+  importFile.addEventListener('change', async (e)=>{
+    const f = e.target.files?.[0]; if (!f) return;
+    try {
+      const txt = await f.text();
+      const arr = JSON.parse(txt);
+      if (!Array.isArray(arr)) throw new Error('Neplatný formát');
+      // jednoduchá merge strategie: nové dopředu, duplicitní id přeskoč
+      const ids = new Set(data.map(n=>n.id));
+      const imported = arr.filter(n => n && typeof n === 'object' && !ids.has(n.id));
+      data = [...imported, ...data];
+      save(); render();
+      alert(`Import hotov: ${imported.length} položek.`);
+    } catch (err) {
+      console.error(err); alert('Import selhal: ' + err.message);
+    } finally {
+      e.target.value = '';
+    }
+  });
+
+  // archiv
+  let archiveVisible = false;
+  btnArchiveToggle.addEventListener('click', ()=>{
+    archiveVisible = !archiveVisible;
+    archiveBlock.classList.toggle('hidden', !archiveVisible);
+    btnArchiveToggle.textContent = archiveVisible ? 'Skrýt archiv' : 'Zobrazit archiv';
+  });
+
+  // pomocné
+  function timeLabel(ts){
+    const d = new Date(ts);
+    return d.toLocaleString();
+  }
+
+  function normalizeForSearch(s){ return (s || '').toLowerCase(); }
+
+  function matchesSearch(n, q) {
+    if (!q) return true;
+    q = q.toLowerCase();
+    return normalizeForSearch(n.title).includes(q)
+        || normalizeForSearch(n.content).includes(q)
+        || (n.tags||[]).some(t => t.toLowerCase().includes(q));
+  }
+
+  // změny a akce
+  function updateNote(id, patch) {
+    const i = data.findIndex(n => n.id === id);
+    if (i === -1) return;
+    data[i] = { ...data[i], ...patch, updatedAt: Date.now() };
+    save(); render();
+  }
+  function deleteNote(id) {
+    data = data.filter(n => n.id !== id);
+    save(); render();
+  }
+  function togglePin(id) {
+    const n = data.find(x => x.id === id);
+    if (!n) return;
+    n.pinned = !n.pinned; n.updatedAt = Date.now();
+    // připnuté držet nahoře
+    data.sort((a,b)=> (b.pinned?1:0) - (a.pinned?1:0) || b.updatedAt - a.updatedAt);
+    save(); render();
+  }
+  function toggleArchive(id) {
+    const n = data.find(x => x.id === id); if (!n) return;
+    n.archived = !n.archived; n.updatedAt = Date.now();
+    save(); render();
+  }
+
+  // rendrování
+  function render() {
+    const q = searchEl.value.trim();
+    const active = data.filter(n => !n.archived && matchesSearch(n, q));
+    const pinned = active.filter(n => n.pinned);
+    const rest   = active.filter(n => !n.pinned);
+    const arch   = data.filter(n => n.archived && matchesSearch(n, q));
+
+    renderList(pinnedEl, pinned);
+    renderList(notesEl, rest);
+    renderList(archiveEl, arch);
+  }
+
+  function renderList(container, list) {
+    container.innerHTML = '';
+    for (const n of list) {
+      const el = document.createElement('div');
+      el.className = 'note' + (n.pinned ? ' pinned' : '');
+      el.style.background = n.color || '#ffffff';
+
+      // obsah
+      el.innerHTML = `
+        <div class="title" contenteditable="true" data-field="title">${escape(n.title)}</div>
+        ${n.checklist ? renderChecklist(n) : `<div class="content" contenteditable="true" data-field="content">${escape(n.content)}</div>`}
+        ${n.tags?.length ? `<div class="tags">${n.tags.map(t=>`<span class="chip">${escape(t)}</span>`).join(' ')}</div>` : ''}
+        <div class="muted" style="margin-top:6px">upraveno: ${timeLabel(n.updatedAt)}</div>
+        <div class="actions">
+          <button class="btn pin" data-act="pin">${n.pinned ? '📌 Odepnout' : '📌 Připnout'}</button>
+          <button class="btn" data-act="archive">${n.archived ? 'Vrátit z archivu' : 'Archivovat'}</button>
+          <button class="btn" data-act="color">Barva…</button>
+          <button class="btn" data-act="tags">Štítky…</button>
+          <button class="btn" data-act="delete">Smazat</button>
+        </div>
+      `;
+
+      // edit text/title
+      el.querySelectorAll('[contenteditable][data-field]').forEach(ed => {
+        ed.addEventListener('input', () => {
+          const field = ed.dataset.field;
+          const val = ed.innerText;
+          if (n.checklist && field === 'content') return; // checklist nemá content
+          updateNote(n.id, { [field]: val });
+        });
+      });
+
+      // akce
+      el.addEventListener('click', (e)=>{
+        const btn = e.target.closest('[data-act]'); if (!btn) return;
+        const act = btn.dataset.act;
+        if (act === 'pin') togglePin(n.id);
+        else if (act === 'archive') toggleArchive(n.id);
+        else if (act === 'delete') deleteNote(n.id);
+        else if (act === 'color') pickColor(n);
+        else if (act === 'tags') editTags(n);
+      });
+
+      // checklist interakce
+      if (n.checklist) {
+        el.addEventListener('change', (e)=>{
+          const cb = e.target.closest('input[type="checkbox"][data-idx]');
+          if (!cb) return;
+          const idx = Number(cb.dataset.idx);
+          n.items[idx].done = cb.checked;
+          updateNote(n.id, { items: n.items });
+        });
+        el.addEventListener('input', (e)=>{
+          const tx = e.target.closest('input[type="text"][data-idx]');
+          if (!tx) return;
+          const idx = Number(tx.dataset.idx);
+          n.items[idx].text = tx.value;
+          updateNote(n.id, { items: n.items });
+        });
+        // přidání položky Enterem
+        el.addEventListener('keydown', (e)=>{
+          const tx = e.target.closest('input[type="text"][data-idx]');
+          if (tx && e.key === 'Enter') {
+            e.preventDefault();
+            const idx = Number(tx.dataset.idx);
+            n.items.splice(idx+1,0,{text:'',done:false});
+            updateNote(n.id, { items: n.items });
+          }
+        });
+      }
+
+      container.appendChild(el);
+    }
+  }
+
+  function renderChecklist(n) {
+    const items = n.items || [];
+    const rows = items.map((it,i)=>`
+      <div class="check-item">
+        <input type="checkbox" data-idx="${i}" ${it.done ? 'checked' : ''} />
+        <input type="text" data-idx="${i}" value="${escape(it.text)}" />
+      </div>
+    `).join('');
+    return `<div class="checklist">${rows || '<div class="muted">Prázdný seznam – Enter přidá položku.</div>'}</div>`;
+  }
+
+  function pickColor(n){
+    const input = document.createElement('input');
+    input.type = 'color'; input.value = n.color || '#ffffff';
+    input.style.position = 'fixed'; input.style.left = '-9999px';
+    document.body.appendChild(input);
+    input.addEventListener('input', ()=> updateNote(n.id, { color: input.value }));
+    input.addEventListener('change', ()=> input.remove());
+    input.click();
+  }
+
+  function editTags(n){
+    const s = prompt('Zadej štítky oddělené mezerou nebo čárkou (můžou být s # i bez #):', n.tags?.join(' ') || '');
+    if (s === null) return;
+    updateNote(n.id, { tags: parseTags(s) });
+  }
+
+  function escape(s=''){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+  // init
+  render();
+</script>
+</body>
+</html>

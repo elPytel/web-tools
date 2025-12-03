@@ -183,7 +183,7 @@
           "name": "Generátor tréninkového plánu",
           "desc": "Vygeneruje tréninkový plán podle zadaných parametrů.",
           "difficulty": "🟡",
-          "path": "body-heatmap.html",
+          "path": "tools/body-heatmap.html",
           "tags": ["body-heatmap", "cvičení"]
         }
       ]
