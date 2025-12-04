@@ -1,5 +1,29 @@
 import { describe, it, expect, vi } from 'vitest';
-import { log2, classifyStrength, bigPow, formatBigInt, secondsToHuman, computeRateAndHashTime } from '../src/js/tools/cybersec.js';
+import nodeCrypto from 'node:crypto';
+import { log2, classifyStrength, bigPow, formatBigInt, secondsToHuman, computeRateAndHashTime, getWordlistEntry, randHex, randEmail, randDate, makeSalt, digestText, loadWordlistFromPath, loadCommonNames, loadCommonSurnames } from '../src/js/cybersec.js';
+
+// polyfill / test stub for Web Crypto API in Node environment
+// vitest runs in Node where global crypto might be missing; use node:crypto underneath.
+const fakeCrypto = {
+  getRandomValues(buf) {
+    const rnd = nodeCrypto.randomBytes(buf.length);
+    buf.set(rnd);
+    return buf;
+  },
+  subtle: {
+    async digest(algo, data) {
+      // algo like 'SHA-256' -> 'sha256'
+      const alg = String(algo).toLowerCase().replace(/-/g, '');
+      const h = nodeCrypto.createHash(alg);
+      // data can be ArrayBuffer/TypedArray
+      h.update(Buffer.from(data));
+      return h.digest();
+    }
+  }
+};
+
+// ensure global crypto is available for the module under test
+vi.stubGlobal('crypto', fakeCrypto);
 
 describe('cybersec utils', () => {
   it('log2 computes base-2 logarithm', () => {
@@ -50,7 +74,6 @@ describe('cybersec utils', () => {
 
   // ---------- additional tests ----------
   it('getWordlistEntry returns expected object', () => {
-    const { getWordlistEntry } = require('../src/js/tools/cybersec.js');
     const e = getWordlistEntry('nordpass');
     expect(e).not.toBeNull();
     expect(e.id).toBe('nordpass');
@@ -58,20 +81,17 @@ describe('cybersec utils', () => {
   });
 
   it('randHex returns correct length and hex chars', () => {
-    const { randHex } = require('../src/js/tools/cybersec.js');
     const s = randHex(8);
     expect(s).toMatch(/^[0-9a-f]+$/);
     expect(s.length).toBe(16);
   });
 
   it('randEmail default returns email-like string', () => {
-    const { randEmail } = require('../src/js/tools/cybersec.js');
     const e = randEmail();
     expect(e).toMatch(/^[^@]+@[^@]+\.[^@]+$/);
   });
 
   it('randDate returns ISO date between 2015-01-01 and today', () => {
-    const { randDate } = require('../src/js/tools/cybersec.js');
     const d = randDate();
     expect(d).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     const t = new Date(d).getTime();
@@ -80,7 +100,6 @@ describe('cybersec utils', () => {
   });
 
   it('makeSalt random yields hex of correct length; regdate is deterministic', () => {
-    const { makeSalt } = require('../src/js/tools/cybersec.js');
     const r = makeSalt(8);
     expect(r).toMatch(/^[0-9a-f]+$/);
     expect(r.length).toBe(16);
@@ -93,38 +112,35 @@ describe('cybersec utils', () => {
   });
 
   it('digestText supports SHA-256 and returns known hash for "abc"', async () => {
-    const { digestText } = require('../src/js/tools/cybersec.js');
     const h = await digestText('SHA-256', 'abc');
     expect(h).toBe('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
   });
 
   it('loadWordlistFromPath and loadCommon* functions work with fetch mock', async () => {
-    const { loadWordlistFromPath, loadCommonNames, loadCommonSurnames } = require('../src/js/tools/cybersec.js');
+     // mock fetch for a simple wordlist
+     vi.stubGlobal('fetch', async (path) => {
+       if (path.includes('top_common')) {
+         return { text: async () => 'one\ntwo\nthree\n' };
+       }
+       if (path.endsWith('.csv')) {
+         // header + two rows, gender codes in first column
+         return { text: async () => 'DRUH_JMENA,JMENO\nM,Jan\nF,Marie\n' };
+       }
+       if (path.endsWith('.txt')) {
+         return { text: async () => 'novak\nsvoboda\n' };
+       }
+       return { text: async () => '' };
+     });
 
-    // mock fetch for a simple wordlist
-    vi.stubGlobal('fetch', async (path) => {
-      if (path.includes('top_common')) {
-        return { text: async () => 'one\ntwo\nthree\n' };
-      }
-      if (path.endsWith('.csv')) {
-        // header + two rows, gender codes in first column
-        return { text: async () => 'DRUH_JMENA,JMENO\nM,Jan\nF,Marie\n' };
-      }
-      if (path.endsWith('.txt')) {
-        return { text: async () => 'novak\nsvoboda\n' };
-      }
-      return { text: async () => '' };
-    });
-
-    const wl = await loadWordlistFromPath('path/to/top_common.txt');
-    expect(Array.isArray(wl)).toBeTruthy();
-    expect(wl).toContain('one');
-
-    const names = await loadCommonNames('file.csv', 'M');
-    expect(names).toContain('jan');
-    const surnames = await loadCommonSurnames('file.txt');
-    expect(surnames).toContain('novak');
-    // restore fetch mock
-    vi.unstubAllGlobals();
-  });
-});
+     const wl = await loadWordlistFromPath('path/to/top_common.txt');
+     expect(Array.isArray(wl)).toBeTruthy();
+     expect(wl).toContain('one');
+ 
+     const names = await loadCommonNames('file.csv', 'M');
+     expect(names).toContain('jan');
+     const surnames = await loadCommonSurnames('file.txt');
+     expect(surnames).toContain('novak');
+     // restore fetch mock
+     vi.unstubAllGlobals();
+   });
+ });
