@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import nodeCrypto from 'node:crypto';
-import { log2, classifyStrength, bigPow, formatBigInt, secondsToHuman, computeRateAndHashTime, getWordlistEntry, randHex, randEmail, randDate, makeSalt, digestText, loadWordlistFromPath, loadCommonNames, loadCommonSurnames } from '../src/js/cybersec.js';
+import { log2, classifyStrength, bigPow, formatBigInt, secondsToHuman, computeRateAndHashTime, getWordlistEntry, randHex, randEmail, randDate, makeSalt, digestText, loadWordlistFromPath, loadCommonNames, loadCommonSurnames } from '../src/js/tools/cybersec.js';
 
 // polyfill / test stub for Web Crypto API in Node environment
 // vitest runs in Node where global crypto might be missing; use node:crypto underneath.
