@@ -5,7 +5,7 @@ export function caesarShift(str, shift) {
   const A = 'A'.charCodeAt(0);
   const Z = 'Z'.charCodeAt(0);
 
-  const normalized = ((shift % 26) + 26) % 26; // ensure 0..25
+  const normalized = ((shift % 26) + 26) % 26;
 
   return str
     .toUpperCase()

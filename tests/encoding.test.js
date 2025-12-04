@@ -6,7 +6,7 @@ import {
   toUtf8Bytes,
   bytesToUtf8,
   splitBySep
-} from '../src/js/encoding.js';
+} from '../src/js/tools/encoding.js';
 
 // Ensure TextEncoder/TextDecoder exist in the test environment (Node older versions)
 beforeAll(() => {

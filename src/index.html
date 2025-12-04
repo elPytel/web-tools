@@ -56,7 +56,7 @@
   </style>
 </head>
 <body>
-  <script type="module" src="./js/site-header.js"></script>
+  <script type="module" src="./js/ui/site-header.js"></script>
   <site-header title="Web Tools"></site-header>
 
     <p class="lead">Malé nástroje spustitelné v prohlížeči. Vyberte si jednu z aplikací níže.</p>
@@ -174,7 +174,7 @@
   </script>
   <script type="module">
     // Theme wiring: initialize theme manager and sync header radios
-    import { initTheme, applyTheme } from './js/theme.js';
+    import { initTheme, applyTheme } from './js/ui/theme.js';
     initTheme();
 
     const stored = localStorage.getItem('site_theme_mode') || 'auto';

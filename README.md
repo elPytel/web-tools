@@ -12,6 +12,7 @@
   - [Spuštění v prohlížeči](#spuštění-v-prohlížeči)
     - [S podporou načítání skriptů (lokální server)](#s-podporou-načítání-skriptů-lokální-server)
     - [Otevírání v IDE](#otevírání-v-ide)
+  - [Struktura projektu](#struktura-projektu)
   - [Jazyková podpora](#jazyková-podpora)
 
 # Průvodce pro vývojáře
@@ -87,10 +88,38 @@ Pro spuštění projektu v prohlížeči s podporou ES modulů použijte lokáln
 # Python 3
 python -m http.server 8000 --directory src
 ```
+- `src` je kořenový adresář webu (aby fungovaly relativní cesty).
+
+[http://localhost:8000/](http://localhost:8000/) otevře hlavní stránku.
 
 ### Otevírání v IDE
 
 VS Code rozšíření "Live Server" od Microsoftu umožňuje spustit lokální server přímo z editoru. Po instalaci rozšíření klikněte pravým tlačítkem na `src/index.html` a vyberte "Open with Live Server".
+
+## Struktura projektu
+
+Pro každou stránku:
+- `*.explain.md` – vysvětlení nástroje v markdown formátu,
+- HTML soubor `tool/<nazev>_tool.html`,
+  - obsahuje `<link>` na CSS a `<script type="module" src="../js/pages/..."></script>`,
+- soubor s javascriptovým kódem `js/pages/<nazev>.js`,
+  - obsahuje inline `<script type="module">` logiku,
+- metadata v `tools.json`.
+
+```text
+src/
+├── assets/               # obrázky, ikony
+├── js/
+│   ├── core/             # jádro aplikace (společné funkce pro nástroje)
+│   ├── ui/               # obecné UI komponenty (tlačítka, dialogy, notifikace)
+│   ├── vendor/           # externí knihovny (např. QRCode.js)
+│   └── pages/            # skripty pro jednotlivé nástroje
+├── tool/                 # HTML stránky nástrojů
+│   ├── *_explain.md/     # vysvětlení nástroje
+│   └── *_tool.html/      # HTML stránka nástroje
+├── tools.json            # metadata nástrojů
+└── index.html            # hlavní stránka generovaná z tools.json
+```
 
 ## Jazyková podpora
 

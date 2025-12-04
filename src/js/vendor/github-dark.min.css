@@ -1,0 +1,4 @@
+/* Minimal placeholder for highlight.js GitHub-dark theme used as local fallback. */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Segoe UI Mono', monospace; }
+pre { background:#0b0f14; color:#c9d1d9; padding:12px; border-radius:8px; overflow:auto; }
+code { background:#0f1720; color:#e6eef6; padding:2px 6px; border-radius:6px; }

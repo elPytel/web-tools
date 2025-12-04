@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <title>📄 PDF Organizer (slučování & řazení)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center }
+    .toolbar .grow { flex:1 }
+    .dropzone { border:1px dashed var(--border); border-radius:10px; padding:12px; text-align:center; color:var(--muted) }
+    .dropzone.drag { background: var(--panel-2) }
+    .grid { display:grid; gap:12px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    .thumb {
+      position: relative; background: var(--panel); border:1px solid var(--border); border-radius:12px;
+      padding:8px; display:flex; flex-direction:column; gap:8px; cursor:grab;
+    }
+    .thumb.dragging { opacity:.6 }
+    .thumb .page {
+      display:grid; place-items:center;
+      background:#fff; border-radius:6px; border:1px solid #e5e7eb; aspect-ratio: 1/1.3; overflow:hidden;
+    }
+    .thumb canvas { width:100%; height:100%; object-fit:contain }
+    .thumb .meta { font-size:.85rem; color:var(--muted); display:flex; justify-content:space-between }
+    .thumb .sel {
+      position:absolute; top:8px; left:8px; width:18px; height:18px; border-radius:4px; border:1px solid var(--border);
+      background:#fff; display:grid; place-items:center; font-size:.85rem; cursor:pointer;
+    }
+    .thumb.selected { outline:2px solid var(--accent); }
+    .thumb .badge { position:absolute; right:8px; top:8px; font-size:.75rem; background: #111827; color:#fff; padding:.1rem .4rem; border-radius:6px; opacity:.85 }
+    .hint { color: var(--muted); font-size:.9rem }
+    .small { font-size:.85rem }
+    .btn { cursor:pointer }
+  </style>
+</head>
+<body>
+<div class="app">
+  <script type="module" src="../js/ui/site-header.js"></script>
+  <site-header title="📄 PDF Organizer"></site-header>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="grow">
+        <div id="drop" class="dropzone">Přetáhni sem PDF soubory… nebo použij tlačítko „Přidat PDF“</div>
+      </div>
+      <div>
+        <input id="file" type="file" accept="application/pdf" multiple style="display:none" />
+        <button id="btnAdd" class="btn">Přidat PDF</button>
+      </div>
+      <div>
+        <button id="btnSelectAll" class="btn">Vybrat vše</button>
+        <button id="btnClearSel" class="btn">Zrušit výběr</button>
+      </div>
+      <div>
+        <button id="btnDelete" class="btn">Smazat vybrané</button>
+        <button id="btnDuplicate" class="btn">Duplikovat vybrané</button>
+      </div>
+      <div>
+        <button id="btnExportSel" class="btn">Export pouze vybrané</button>
+        <button id="btnExportAll" class="btn primary">Export vše → PDF</button>
+      </div>
+    </div>
+    <div class="hint small">Pozn.: Náhledy se vykreslují líně až když jsou na obrazovce. U velkých PDF může chvilku trvat, než se vše načte.</div>
+  </div>
+
+  <div class="card">
+    <div id="status" class="small">Stav: připraveno. Přidej soubory.</div>
+  </div>
+
+  <div class="card">
+    <div id="grid" class="grid"></div>
+  </div>
+</div>
+
+<!-- načti pdf-lib (UMD) -->
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+<!-- hlavní modul přesunutý do samostatného souboru -->
+<script type="module" src="../js/pages/pdf-organizer.js"></script>
+</body>
+</html>
