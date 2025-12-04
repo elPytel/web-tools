@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title>Text ⇄ Morse – převodník</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
   <style>
     :root { --pad: 14px; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -51,12 +52,12 @@
       <div class="card">
         <h3>Text → Morse</h3>
   <textarea id="textInput" class="form-control" placeholder="Zadej běžný text (např. &quot;Ahoj světe!&quot;)"></textarea>
-        <div class="controls">
+        <div class="controls form-inline no-wrap">
           <button id="toMorseBtn">Převést na Morse</button>
           <button id="copyMorseBtn" class="pill">Kopírovat Morse</button>
           <button id="clearTextBtn">Vymazat</button>
         </div>
-        <div class="controls">
+        <div class="controls form-inline no-wrap">
           <label>Rychlost (WPM): <input type="number" id="wpm" value="18" min="5" max="60" style="width:80px"></label>
           <label>Frekvence (Hz): <input type="number" id="freq" value="650" min="200" max="1200" style="width:90px"></label>
           <label>Hlasitost: <span id="volLabel">80%</span>
@@ -73,7 +74,7 @@
       <div class="card">
         <h3>Morse → Text</h3>
   <textarea id="morseInput" class="form-control" placeholder="Zadej Morse (např. &quot;.- .... --- .--- / ... ...- . - .&quot;)"></textarea>
-        <div class="controls">
+        <div class="controls form-inline no-wrap">
           <button id="toTextBtn">Převést na text</button>
           <button id="copyTextBtn" class="pill">Kopírovat text</button>
           <button id="clearMorseBtn">Vymazat</button>
@@ -104,6 +105,7 @@
     <script type="module" src="../js/site-doc.js"></script>
     <site-doc src="morse_code_explain.md" title="📘 Vysvětlení" toggle></site-doc>
   </div>
+  <!-- Markdown & highlight loading handled by site-doc (prefers local /js/vendor) -->
 
   <script type="module" src="../js/pages/morse_code.js"></script>
   <script type="module">
