@@ -65,7 +65,7 @@
           "name": "Textový analyzátor",
           "desc": "Počet slov, znaků, frekvence písmen, export CSV.",
           "difficulty": "🟡",
-          "path": "text_analyzer.html",
+          "path": "tools/text_analyzer.html",
           "tags": ["text", "frekvence", "statistika"]
         }
       ]

@@ -27,7 +27,7 @@
 <body>
   <div class="app">
     <div class="card">
-      <script type="module" src="../js/site-header.js"></script>
+      <script type="module" src="../js/ui/site-header.js"></script>
       <site-header title="Text ⇄ ASCII / UTF-8"></site-header>
     </div>
     <div class="card">
@@ -109,7 +109,7 @@
         toUtf8Bytes,
         bytesToUtf8,
         splitBySep
-      } from '../js/encoding.js';
+      } from '../js/tools/encoding.js';
 
       // --- Helpers ---
       const $ = id => document.getElementById(id);

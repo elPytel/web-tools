@@ -93,7 +93,7 @@ class SiteDoc extends HTMLElement {
     if (!this.src) return;
     try {
       // import the existing markdown_tools which handles KaTeX, highlighting and TOC
-      const mod = await import('./markdown_tools.js');
+      const mod = await import('./core/markdown.js');
 
       // fallback slugify (same as earlier pages)
       const slugify = s => s

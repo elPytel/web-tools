@@ -1,4 +1,4 @@
-import { initTheme, applyTheme, getStoredTheme } from './theme.js';
+import { initTheme, applyTheme, getStoredTheme } from '../ui/theme.js';
 
 // Simple shared header inserted into light DOM (no shadow DOM) so it uses global CSS
 const template = `
@@ -29,8 +29,6 @@ class SiteHeader extends HTMLElement {
     try {
       const hasIcon = !!document.querySelector('link[rel~="icon"], link[rel~="shortcut icon"], link[rel~="apple-touch-icon"]');
       if (!hasIcon) {
-        // Prefer the prepared PNG/ICO assets at the site root if available.
-        // These are the common set produced by many favicon generators.
         const links = [
           { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
           { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
@@ -45,32 +43,25 @@ class SiteHeader extends HTMLElement {
       }
     } catch (e) { /* ignore if document.head not available */ }
 
-  // set title (attribute 'title' on <site-header> or fallback to document.title before '—')
-  const titleAttr = this.getAttribute('title');
-  let titleText = titleAttr ? titleAttr : (document.title || '');
-  if (!titleAttr && titleText.includes('—')) titleText = titleText.split('—')[0].trim();
-  const titleEl = this.querySelector('#site-title');
-  if (titleEl) titleEl.textContent = titleText;
+    const titleAttr = this.getAttribute('title');
+    let titleText = titleAttr ? titleAttr : (document.title || '');
+    if (!titleAttr && titleText.includes('—')) titleText = titleText.split('—')[0].trim();
+    const titleEl = this.querySelector('#site-title');
+    if (titleEl) titleEl.textContent = titleText;
 
-  // sync radios with storage
-  const stored = localStorage.getItem('site_theme_mode') || 'auto';
-  const radios = this.querySelectorAll('#themeControls input[name="theme"]');
-  radios.forEach(r => r.checked = (r.value === stored));
+    const stored = localStorage.getItem('site_theme_mode') || 'auto';
+    const radios = this.querySelectorAll('#themeControls input[name="theme"]');
+    radios.forEach(r => r.checked = (r.value === stored));
 
-    // when user changes radios, apply theme
     const controls = this.querySelector('#themeControls');
     if (controls) controls.addEventListener('change', e => {
       if (e.target && e.target.value) applyTheme(e.target.value);
     });
 
-    // keep radios synced when theme changes elsewhere
     window.addEventListener('theme:changed', ev => {
       const requested = ev.detail && ev.detail.requested ? ev.detail.requested : (localStorage.getItem('site_theme_mode') || 'auto');
       radios.forEach(r => r.checked = (r.value === requested));
     });
-
-    // Note: chips/search are intentionally left out of the shared header.
-    // Pages which need search/chips (e.g. menu) should render them locally.
   }
 }
 

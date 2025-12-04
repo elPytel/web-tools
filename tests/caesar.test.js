@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { caesarShift, encrypt, decrypt } from '../src/js/caesar.js';
+import { caesarShift, encrypt, decrypt } from '../src/js/tools/crypto/caesar.js';
 
 describe('caesar cipher', () => {
   it('shifts letters forward', () => {

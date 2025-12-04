@@ -25,7 +25,7 @@
 </head>
 <body>
   <div class="app">
-    <script type="module" src="../js/site-header.js"></script>
+    <script type="module" src="../js/ui/site-header.js"></script>
     <site-header title="🔓 Rainbow / Password cracking playground"></site-header>
 
     <!-- DB leak configuration card -->
@@ -177,7 +177,7 @@
   const $ = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 
-  import {loadWordlistFromPath, digestText, makeSalt, randHex, randEmail, randDate, WORDLISTS, getWordlistEntry, loadCommonNames, loadCommonSurnames } from '../js/cybersec.js';
+  import {loadWordlistFromPath, digestText, makeSalt, randHex, randEmail, randDate, WORDLISTS, getWordlistEntry, loadCommonNames, loadCommonSurnames } from '../js/tools/cybersec.js';
 
   // leak-specific wordlist state (used for generating leaked DB pool)
   let leakWordlist = [];

@@ -29,7 +29,7 @@
 <body>
     <div class="app">
         <div class="card">
-            <script type="module" src="../js/site-header.js"></script>
+            <script type="module" src="../js/ui/site-header.js"></script>
             <site-header title="Výpočet délky práce"></site-header>
             <div class="muted">
                 Výpočet rozdílu časů mezi dvěma časovými údaji.
@@ -52,7 +52,7 @@
     <p id="result" aria-live="polite"></p>
 
     <script type="module">
-    import { computeDiff } from '../js/timecalc.js';
+    import { computeDiff } from '../js/tools/timecalc.js';
 
         // Použijeme event listenery místo inline atributu
         document.getElementById('timeForm').addEventListener('submit', (e) => {

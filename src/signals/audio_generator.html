@@ -18,7 +18,7 @@
 </head>
 <body>
   <div class="app">
-    <script type="module" src="../js/site-header.js"></script>
+    <script type="module" src="../js/ui/site-header.js"></script>
     <site-header title="📶 Generátor signálů"></site-header>
 
     <div class="card">
@@ -114,8 +114,8 @@
   <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/lib/common.min.js"></script>
 
   <script type="module">
-    import { initTheme, applyTheme } from '../js/theme.js';
-  import { start, stop, setWave, setRect, setFreq, setGain, setAdditive, initViz, getState, setFFTSize } from '../js/signals.js';
+    import { initTheme, applyTheme } from '../js/ui/theme.js';
+  import { start, stop, setWave, setRect, setFreq, setGain, setAdditive, initViz, getState, setFFTSize } from '../js/core/audio.js';
     // Load presets from JSON (top-level await in module script)
     let P = {};
     try {
