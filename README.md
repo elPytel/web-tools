@@ -88,6 +88,9 @@ Pro spuštění projektu v prohlížeči s podporou ES modulů použijte lokáln
 # Python 3
 python -m http.server 8000 --directory src
 ```
+- `src` je kořenový adresář webu (aby fungovaly relativní cesty).
+
+[http://localhost:8000/](http://localhost:8000/) otevře hlavní stránku.
 
 ### Otevírání v IDE
 
@@ -99,7 +102,7 @@ Pro každou stránku:
 - `*.explain.md` – vysvětlení nástroje v markdown formátu,
 - HTML soubor `tool/<nazev>_tool.html`,
   - obsahuje `<link>` na CSS a `<script type="module" src="../js/pages/..."></script>`,
-- soubor s javascriptovým kódem `js/pages/<nazev>_page.js`,
+- soubor s javascriptovým kódem `js/pages/<nazev>.js`,
   - obsahuje inline `<script type="module">` logiku,
 - metadata v `tools.json`.
 
