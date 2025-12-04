@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <title>🔀 Transpoziční šifra – nástroj</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .controls { display:grid; gap:10px }
+    textarea { min-height:120px }
+    .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center }
+    .small-input { max-width:120px }
+    .select { max-width:180px }
+    .muted { color: var(--muted); font-size:.9rem }
+    .result { white-space:pre-wrap; word-break:break-word }
+  </style>
+</head>
+<body>
+<div class="app">
+  <script type="module" src="../js/ui/site-header.js"></script>
+  <site-header title="🔀 Transpoziční šifra"></site-header>
+
+  <div class="card">
+    <p class="muted">
+      Transpoziční šifra mění <strong>pořadí znaků</strong>, ale nemění samotná písmena.  
+      Zvol klíč, směr zápisu a čtení, případně dvojitou transpozici.
+    </p>
+
+    <div class="controls">
+      <label>
+        Vstupní text:
+        <textarea id="input" class="form-control" placeholder="Zadej text k zašifrování / dešifrování..."></textarea>
+      </label>
+
+      <div class="row">
+        <label>Klíč 1:
+          <input id="key1" type="text" class="form-control small-input" placeholder="KLÍC1" />
+        </label>
+        <label>Klíč 2:
+          <input id="key2" type="text" class="form-control small-input" placeholder="KLÍC2 (pro dvojitou)" />
+        </label>
+        <label>Doplňovací znak:
+          <input id="padChar" type="text" class="form-control small-input" value="X" maxlength="1" />
+        </label>
+      </div>
+
+      <div class="row">
+        <label>Zápis do tabulky:
+          <select id="fillMode" class="form-control select">
+            <option value="row-lr">Řádky zleva doprava</option>
+            <option value="row-rl">Řádky zprava doleva</option>
+            <option value="col-tb">Sloupce shora dolů</option>
+            <option value="col-bt">Sloupce zdola nahoru</option>
+          </select>
+        </label>
+        <label>Čtení z tabulky:
+          <select id="readMode" class="form-control select">
+            <option value="col-tb">Sloupce shora dolů</option>
+            <option value="col-bt">Sloupce zdola nahoru</option>
+            <option value="row-lr">Řádky zleva doprava</option>
+            <option value="row-rl">Řádky zprava doleva</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="row">
+        <label><input id="double" type="checkbox" /> dvojitá transpozice (použij klíč 1 a 2)</label>
+        <label><input id="normalize" type="checkbox" /> normalizovat (A–Z, bez mezer/diakritiky)</label>
+        <label><input id="lettersOnly" type="checkbox" /> transponovat jen písmena (mezery a interpunkce zůstanou)</label>
+      </div>
+
+      <div class="row" style="justify-content:center; margin-top:4px;">
+        <button id="btnEnc" class="btn primary">Zašifrovat</button>
+        <button id="btnDec" class="btn">Dešifrovat</button>
+      </div>
+
+      <div>
+        <label>Výsledek:
+          <textarea id="output" class="form-control result" readonly placeholder="Zde se zobrazí výsledek..."></textarea>
+        </label>
+      </div>
+    </div>
+
+    <p class="muted" style="margin-top:8px;">
+      Tip: zapni <code>dvojitou transpozici</code> a změň směr zápisu nebo čtení.  
+      Sleduj, jak hodně se šifrotext liší od původního textu.
+    </p>
+  </div>
+
+  <script type="module" src="../js/site-doc.js"></script>
+    <site-doc src="transposition_explain.md" title="📘 Vysvětlení" toggle></site-doc>
+</div>
+
+<script type="module">
+  import { transposeEncrypt, transposeDecrypt } from '../js/tools/crypto/transposition.js';
+
+  const $ = sel => document.querySelector(sel);
+
+  const inputEl      = $('#input');
+  const outputEl     = $('#output');
+  const key1El       = $('#key1');
+  const key2El       = $('#key2');
+  const padCharEl    = $('#padChar');
+  const fillModeEl   = $('#fillMode');
+  const readModeEl   = $('#readMode');
+  const doubleEl     = $('#double');
+  const normalizeEl  = $('#normalize');
+  const lettersOnlyEl= $('#lettersOnly');
+  const btnEnc       = $('#btnEnc');
+  const btnDec       = $('#btnDec');
+
+  function getOptions() {
+    const key1 = key1El.value || '';
+    const key2 = key2El.value || '';
+    const pad  = padCharEl.value || 'X';
+
+    return {
+      key1,
+      key2,
+      double: !!doubleEl.checked,
+      fillMode: fillModeEl.value,
+      readMode: readModeEl.value,
+      padChar: pad[0],
+      normalize: !!normalizeEl.checked,
+      lettersOnly: !!lettersOnlyEl.checked
+    };
+  }
+
+  btnEnc.addEventListener('click', () => {
+    const text = inputEl.value || '';
+    const opts = getOptions();
+
+    // pokud je normalize zapnuté, lettersOnly nedává smysl → ignorujeme ho
+    if (opts.normalize) {
+      opts.lettersOnly = false;
+    }
+
+    const res = transposeEncrypt(text, opts);
+    outputEl.value = res;
+  });
+
+  btnDec.addEventListener('click', () => {
+    const text = inputEl.value || '';
+    const opts = getOptions();
+
+    if (opts.normalize) {
+      // dešifrování normalizovaného textu – výsledek bude také bez mezer/diakritiky
+      opts.lettersOnly = false;
+    }
+
+    const res = transposeDecrypt(text, opts);
+    outputEl.value = res;
+  });
+</script>
+</body>
+</html>

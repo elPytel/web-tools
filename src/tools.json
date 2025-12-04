@@ -50,7 +50,17 @@
           "desc": "Převod textu na Morseovu abecedu a syntéza zvuku.",
           "difficulty": "🟢",
           "path": "crypto/Morse_code.html",
-          "tags": ["šifra", "morse", "zvuk"]
+          "tags": ["šifra", "morse", "zvuk"],
+          "hasExplain": true
+        },
+        {
+          "id": "transposition",
+          "name": "Transpoziční šifra",
+          "desc": "Šifra založená na přeskupení písmen podle klíčového slova.",
+          "difficulty": "🟡",
+          "path": "crypto/transposition.html",
+          "tags": ["šifra", "transpozice", "tabulka"],
+          "hasExplain": true
         }
       ]
     },
