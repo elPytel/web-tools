@@ -187,6 +187,30 @@
           "tags": ["body-heatmap", "cvičení"]
         }
       ]
+    },
+    {
+      "id": "other",
+      "name": "🔧 Ostatní nástroje",
+      "chip": "🔧 Ostatní",
+      "color": "#9ca3af",
+      "tools": [
+        {
+          "id": "notes",
+          "name": "Poznámkový blok",
+          "desc": "Rychlé poznámky a úkoly s možností štítků, barev a checklistů.",
+          "difficulty": "🟢",
+          "path": "tools/notes.html",
+          "tags": ["poznámky", "úkoly", "checklist"]
+        },
+        {
+          "id": "pdf_split_merge",
+          "name": "Rozdělení a sloučení PDF",
+          "desc": "Rozdělí PDF na jednotlivé stránky nebo sloučí více PDF do jednoho.",
+          "difficulty": "🟡",
+          "path": "tools/pdf-organizer.html",
+          "tags": ["pdf", "rozdělení", "sloučení"]
+        }
+      ]
     }
   ]
 }
