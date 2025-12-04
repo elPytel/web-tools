@@ -2,9 +2,10 @@
 (async ()=>{
   try {
     console.log('[pdf-organizer] importing pdfjs ESM...');
-    const mod = await import('https://app.unpkg.com/pdfjs-dist@5.4.449/files/build/pdf.esm.min.js');
+    // use a working ESM build with proper CORS headers
+    const mod = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.mjs');
     const pdfjsLib = mod.default || mod;
-    const workerUrl = 'https://app.unpkg.com/pdfjs-dist@5.4.449/files/build/pdf.worker.min.js';
+    const workerUrl = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.worker.mjs';
     if (pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
       console.log('[pdf-organizer] pdfjs ESM loaded, workerSrc =', workerUrl);
