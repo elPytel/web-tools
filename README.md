@@ -14,6 +14,10 @@
     - [Otevírání v IDE](#otevírání-v-ide)
   - [Struktura projektu](#struktura-projektu)
   - [Jazyková podpora](#jazyková-podpora)
+  - [Vyhledatelnost na Google](#vyhledatelnost-na-google)
+    - [Sitemap](#sitemap)
+    - [Open Graph meta tagy](#open-graph-meta-tagy)
+    - [Registrace v Google Search Console](#registrace-v-google-search-console)
 
 # Průvodce pro vývojáře
 
@@ -124,3 +128,41 @@ src/
 ## Jazyková podpora
 
 Více jazyků: `?lang=cs` → načti `explain.cs.md`, jinak `explain.en.md`.
+
+## Vyhledatelnost na Google
+
+### Sitemap
+```powershell
+# výchozí (root URL '/')
+npm run gen-sitemap
+
+# nebo specifikovat produkční URL
+npm run gen-sitemap -- --baseUrl=https://example.com/
+# nebo přes env
+$env:SITEMAP_BASE = 'https://example.com/'; npm run gen-sitemap
+```
+
+### Open Graph meta tagy
+
+```html
+<link rel="canonical" href="https://elpytel.github.io/web-tools/">
+<meta property="og:title" content="Web Tools – malé nástroje v prohlížeči">
+<meta property="og:description" content="Praktické online nástroje: šifry, převodníky, MIDI editor...">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://elpytel.github.io/web-tools/">
+```
+
+### Registrace v Google Search Console
+
+👉 [https://search.google.com/search-console/](https://search.google.com/search-console/)
+
+Postup:
+1️⃣ Zvol „URL Prefix“ a vlož:
+
+`https://elpytel.github.io/web-tools/`
+
+2️⃣ Ověř vlastnictví:
+
+Nahráním HTML souboru do rootu repa nebo vložením <meta> tagu do <head> sekce `src/index.html`.
+
+3️⃣ Po ověření → klikneš Index → Požádat o indexaci
