@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "gen-sitemap": "node ./scripts/generate-sitemap.mjs --baseUrl=/"
   },
   "devDependencies": {
     "vitest": "^4.0.3"
