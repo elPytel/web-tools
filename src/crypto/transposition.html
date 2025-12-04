@@ -10,9 +10,64 @@
     textarea { min-height:120px }
     .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center }
     .small-input { max-width:120px }
-    .select { max-width:180px }
+    .select { max-width:190px }
     .muted { color: var(--muted); font-size:.9rem }
     .result { white-space:pre-wrap; word-break:break-word }
+
+    /* Tabulková vizualizace */
+    .grid-card h2 { margin-top:0 }
+    .grid-info { margin-bottom:6px; font-size:.9rem; color:var(--muted); }
+    .grid-table {
+      display:inline-block;
+      border-collapse:collapse;
+      max-width:100%;
+      overflow:auto;
+    }
+    .grid-table table {
+      border-collapse:collapse;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:.9rem;
+    }
+    .grid-table th,
+    .grid-table td {
+      border:1px solid var(--border);
+      padding:3px 6px;
+      text-align:center;
+      min-width:20px;
+    }
+    .grid-table th {
+      background:var(--panel-2);
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+    .grid-table .pad {
+      opacity:.4;
+    }
+    .grid-table .cell-index {
+      font-size:.7rem;
+      color:var(--muted);
+      display:block;
+    }
+
+    .grid-wrapper {
+      max-width:100%;
+      overflow:auto;
+      padding:4px;
+      border-radius:8px;
+      background:var(--panel);
+      border:1px solid var(--border);
+    }
+
+    .badge {
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:999px;
+      background:var(--panel-2);
+      font-size:.75rem;
+      color:var(--muted);
+      margin-left:4px;
+    }
   </style>
 </head>
 <body>
@@ -22,7 +77,7 @@
 
   <div class="card">
     <p class="muted">
-      Transpoziční šifra mění <strong>pořadí znaků</strong>, ale nemění samotná písmena.  
+      Transpoziční šifra mění <strong>pořadí znaků</strong>, ale nemění samotná písmena.
       Zvol klíč, směr zápisu a čtení, případně dvojitou transpozici.
     </p>
 
@@ -82,9 +137,24 @@
     </div>
 
     <p class="muted" style="margin-top:8px;">
-      Tip: zapni <code>dvojitou transpozici</code> a změň směr zápisu nebo čtení.  
+      Tip: zapni <code>dvojitou transpozici</code> a změň směr zápisu nebo čtení.
       Sleduj, jak hodně se šifrotext liší od původního textu.
     </p>
+  </div>
+
+  <!-- Vizualizace tabulky -->
+  <div class="card grid-card">
+    <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:4px;">
+      <h2>Tabulka (vizualizace)</h2>
+      <label class="muted">
+        <input type="checkbox" id="toggleGrid" checked />
+        zobrazit tabulku
+      </label>
+    </div>
+    <div id="gridInfo" class="grid-info">Tabulka se zobrazí po zadání textu a klíče.</div>
+    <div id="gridPreview" class="grid-wrapper" style="display:none;">
+      <div class="grid-table" id="gridTableContainer"></div>
+    </div>
   </div>
 
   <script type="module" src="../js/site-doc.js"></script>
@@ -92,22 +162,27 @@
 </div>
 
 <script type="module">
-  import { transposeEncrypt, transposeDecrypt } from '../js/tools/crypto/transposition.js';
+  import { transposeEncrypt, transposeDecrypt, normalizeAZ } from '../js/tools/crypto/transposition.js';
 
   const $ = sel => document.querySelector(sel);
 
-  const inputEl      = $('#input');
-  const outputEl     = $('#output');
-  const key1El       = $('#key1');
-  const key2El       = $('#key2');
-  const padCharEl    = $('#padChar');
-  const fillModeEl   = $('#fillMode');
-  const readModeEl   = $('#readMode');
-  const doubleEl     = $('#double');
-  const normalizeEl  = $('#normalize');
-  const lettersOnlyEl= $('#lettersOnly');
-  const btnEnc       = $('#btnEnc');
-  const btnDec       = $('#btnDec');
+  const inputEl       = $('#input');
+  const outputEl      = $('#output');
+  const key1El        = $('#key1');
+  const key2El        = $('#key2');
+  const padCharEl     = $('#padChar');
+  const fillModeEl    = $('#fillMode');
+  const readModeEl    = $('#readMode');
+  const doubleEl      = $('#double');
+  const normalizeEl   = $('#normalize');
+  const lettersOnlyEl = $('#lettersOnly');
+  const btnEnc        = $('#btnEnc');
+  const btnDec        = $('#btnDec');
+
+  const toggleGridEl  = $('#toggleGrid');
+  const gridInfoEl    = $('#gridInfo');
+  const gridPreviewEl = $('#gridPreview');
+  const gridTableContainer = $('#gridTableContainer');
 
   function getOptions() {
     const key1 = key1El.value || '';
@@ -120,23 +195,199 @@
       double: !!doubleEl.checked,
       fillMode: fillModeEl.value,
       readMode: readModeEl.value,
-      padChar: pad[0],
+      padChar: (pad && pad.length ? pad[0] : 'X'),
       normalize: !!normalizeEl.checked,
       lettersOnly: !!lettersOnlyEl.checked
     };
   }
 
+  // ==== Pomocné funkce pro vizualizaci (lightweight kopie z modulu) ====
+
+  function columnOrderFromKey(key, cols) {
+    const n = cols ?? Math.max(1, key?.length || 1);
+    if (!key || !key.length) {
+      return Array.from({ length: n }, (_, i) => i);
+    }
+    const pairs = Array.from({ length: n }, (_, i) => ({
+      idx: i,
+      ch: key[i] ?? String.fromCharCode(0x7f + i)
+    }));
+    pairs.sort((a, b) => {
+      const ca = a.ch.toUpperCase();
+      const cb = b.ch.toUpperCase();
+      if (ca < cb) return -1;
+      if (ca > cb) return 1;
+      return a.idx - b.idx;
+    });
+    return pairs.map(p => p.idx);
+  }
+
+  function buildFillOrder(rows, cols, mode) {
+    const out = [];
+    if (mode === 'row-rl') {
+      for (let r = 0; r < rows; r++) {
+        for (let c = cols - 1; c >= 0; c--) out.push({ r, c });
+      }
+    } else if (mode === 'col-tb') {
+      for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < rows; r++) out.push({ r, c });
+      }
+    } else if (mode === 'col-bt') {
+      for (let c = 0; c < cols; c++) {
+        for (let r = rows - 1; r >= 0; r--) out.push({ r, c });
+      }
+    } else {
+      // row-lr
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) out.push({ r, c });
+      }
+    }
+    return out;
+  }
+
+  // Jednoduchý náhled: jak se text zapíše do mřížky podle fillMode
+  function buildGridForPreview(text, key, fillMode, padChar) {
+    const cols = Math.max(1, key?.length || 1);
+    const total = text.length;
+    const rows = Math.ceil(total / cols);
+    const cellCount = rows * cols;
+    const padded = text.padEnd(cellCount, padChar);
+
+    const fillOrder = buildFillOrder(rows, cols, fillMode);
+
+    const grid = Array.from({ length: rows }, () =>
+      Array.from({ length: cols }, () => padChar)
+    );
+
+    for (let i = 0; i < cellCount; i++) {
+      const { r, c } = fillOrder[i];
+      grid[r][c] = padded[i];
+    }
+
+    return { rows, cols, grid, paddedText: padded };
+  }
+
+  const letterRegex = /\p{L}/u;
+
+  function textForGridPreview(input, opts) {
+    if (opts.normalize) {
+      return normalizeAZ(input);
+    }
+    if (opts.lettersOnly) {
+      // do mřížky jen písmena, ostatní zůstanou mimo transpozici
+      const letters = [...input].filter(ch => letterRegex.test(ch));
+      return letters.join('');
+    }
+    // základ: vezmi text tak jak je (může obsahovat i mezery)
+    return input;
+  }
+
+  function renderGridPreview() {
+    const opts = getOptions();
+    const input = inputEl.value || '';
+
+    if (!toggleGridEl.checked) {
+      gridPreviewEl.style.display = 'none';
+      gridInfoEl.textContent = 'Tabulka je skryta. Zaškrtni „zobrazit tabulku“ pro náhled.';
+      return;
+    }
+
+    const gridText = textForGridPreview(input, opts);
+    if (!gridText.length) {
+      gridPreviewEl.style.display = 'none';
+      gridInfoEl.textContent = 'Zadej vstupní text a klíč, aby bylo co zobrazit v tabulce.';
+      gridTableContainer.innerHTML = '';
+      return;
+    }
+
+    const { rows, cols, grid, paddedText } =
+      buildGridForPreview(gridText, opts.key1, opts.fillMode, opts.padChar);
+
+    gridPreviewEl.style.display = '';
+    const infoPieces = [];
+    infoPieces.push(`Délka textu pro tabulku: ${gridText.length}`);
+    infoPieces.push(`Řádky: ${rows}`);
+    infoPieces.push(`Sloupce (délka klíče 1): ${cols}`);
+    if (paddedText.length > gridText.length) {
+      infoPieces.push(`doplněno znakem "${opts.padChar}"`);
+    }
+    gridInfoEl.textContent = infoPieces.join(' • ');
+
+    // Vykreslit tabulku
+    const table = document.createElement('table');
+
+    // Hlavička: index sloupců + znak klíče
+    const thead = document.createElement('thead');
+    const hr = document.createElement('tr');
+
+    const thEmpty = document.createElement('th');
+    thEmpty.textContent = '#';
+    hr.appendChild(thEmpty);
+
+    const keyRow = document.createElement('tr');
+    const thEmpty2 = document.createElement('th');
+    thEmpty2.textContent = 'Klíč';
+    keyRow.appendChild(thEmpty2);
+
+    const keyArr = [...(opts.key1 || ''.padEnd(cols, ' '))];
+
+    for (let c = 0; c < cols; c++) {
+      const th = document.createElement('th');
+      th.textContent = c + 1;
+      hr.appendChild(th);
+
+      const th2 = document.createElement('th');
+      th2.textContent = keyArr[c] || ' ';
+      keyRow.appendChild(th2);
+    }
+
+    thead.appendChild(hr);
+    thead.appendChild(keyRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    let globalIndex = 0;
+
+    for (let r = 0; r < rows; r++) {
+      const tr = document.createElement('tr');
+      const idxCell = document.createElement('td');
+      idxCell.textContent = r + 1;
+      idxCell.style.fontSize = '.8rem';
+      idxCell.style.color = 'var(--muted)';
+      tr.appendChild(idxCell);
+
+      for (let c = 0; c < cols; c++) {
+        const td = document.createElement('td');
+        const ch = grid[r][c];
+        const isPad = (globalIndex >= gridText.length);
+
+        if (isPad) td.classList.add('pad');
+        td.textContent = ch === ' ' ? '·' : ch;
+        tr.appendChild(td);
+        globalIndex++;
+      }
+      tbody.appendChild(tr);
+    }
+
+    table.appendChild(tbody);
+
+    gridTableContainer.innerHTML = '';
+    gridTableContainer.appendChild(table);
+  }
+
+  // ==== Handlery šifrování/dešifrování ====
+
   btnEnc.addEventListener('click', () => {
     const text = inputEl.value || '';
     const opts = getOptions();
 
-    // pokud je normalize zapnuté, lettersOnly nedává smysl → ignorujeme ho
     if (opts.normalize) {
       opts.lettersOnly = false;
     }
 
     const res = transposeEncrypt(text, opts);
     outputEl.value = res;
+    renderGridPreview();
   });
 
   btnDec.addEventListener('click', () => {
@@ -144,13 +395,24 @@
     const opts = getOptions();
 
     if (opts.normalize) {
-      // dešifrování normalizovaného textu – výsledek bude také bez mezer/diakritiky
       opts.lettersOnly = false;
     }
 
     const res = transposeDecrypt(text, opts);
     outputEl.value = res;
+    renderGridPreview();
   });
+
+  // Live update náhledu tabulky při změně vstupu / nastavení
+  [inputEl, key1El, padCharEl, fillModeEl, normalizeEl, lettersOnlyEl].forEach(el => {
+    el.addEventListener('input', renderGridPreview);
+  });
+  [toggleGridEl].forEach(el => {
+    el.addEventListener('change', renderGridPreview);
+  });
+
+  // Inicializace
+  renderGridPreview();
 </script>
 </body>
 </html>
