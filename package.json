@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "vitest",
-    "gen-sitemap": "node ./scripts/generate-sitemap.mjs --baseUrl=/"
+    "gen-sitemap": "node ./scripts/generate-sitemap.mjs --baseUrl=/",
+    "check-i18n": "node ./scripts/check-i18n.mjs"
   },
   "devDependencies": {
     "vitest": "^4.0.3"

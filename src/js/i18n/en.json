@@ -1,0 +1,39 @@
+{
+  "transposition": {
+    "header": "🔀 Transposition cipher",
+    "description": "A transposition cipher reorders characters but does not change them.",
+    "input_label": "Input text:",
+    "input_placeholder": "Enter text to encrypt / decrypt...",
+    "key1_label": "Key 1:",
+    "key1_placeholder": "KEY1",
+    "key2_label": "Key 2:",
+    "key2_placeholder": "KEY2 (for double)",
+    "pad_label": "Pad character:",
+    "pad_placeholder": "X",
+    "fill_label": "Write into grid:",
+    "read_label": "Read from grid:",
+    "double_label": "double transposition (use key 1 and 2)",
+    "normalize_label": "normalize (A–Z, remove spaces/diacritics)",
+    "lettersOnly_label": "transpose letters only (keep spaces/punct.)",
+    "encrypt_button": "Encrypt",
+    "decrypt_button": "Decrypt",
+    "output_label": "Result:",
+    "output_placeholder": "Result will appear here...",
+    "tip_text": "Tip: enable double transposition and change write/read directions.",
+    "grid_title": "Grid (preview)",
+    "grid_toggle": "show grid",
+    "grid_info_default": "The grid is shown after entering text and a key."
+  },
+  "fill": {
+    "row-lr": "Rows left→right",
+    "row-rl": "Rows right→left",
+    "col-tb": "Columns top→bottom",
+    "col-bt": "Columns bottom→top"
+  },
+  "read": {
+    "col-tb": "Columns top→bottom",
+    "col-bt": "Columns bottom→top",
+    "row-lr": "Rows left→right",
+    "row-rl": "Rows right→left"
+  }
+}

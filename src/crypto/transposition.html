@@ -73,70 +73,79 @@
 <body>
 <div class="app">
   <script type="module" src="../js/ui/site-header.js"></script>
-  <site-header title="🔀 Transpoziční šifra"></site-header>
+  <site-header title="🔀 Transpoziční šifra" data-i18n="transposition.header"></site-header>
+
+  <!-- Temporary language switcher (provisional, move to header later) -->
+  <div style="margin:8px 0;">
+    <label style="font-size:.9rem; margin-right:8px">Jazyk:</label>
+    <select id="langSelect" class="form-control small-input">
+      <option value="cs">Česky</option>
+      <option value="en">English</option>
+    </select>
+  </div>
 
   <div class="card">
-    <p class="muted">
+    <p class="muted" data-i18n="transposition.description">
       Transpoziční šifra mění <strong>pořadí znaků</strong>, ale nemění samotná písmena.
       Zvol klíč, směr zápisu a čtení, případně dvojitou transpozici.
     </p>
 
     <div class="controls">
-      <label>
+      <label data-i18n="transposition.input_label">
         Vstupní text:
-        <textarea id="input" class="form-control" placeholder="Zadej text k zašifrování / dešifrování..."></textarea>
+        <textarea id="input" class="form-control" placeholder="Zadej text k zašifrování / dešifrování..." data-i18n-placeholder="transposition.input_placeholder"></textarea>
       </label>
 
       <div class="row">
-        <label>Klíč 1:
-          <input id="key1" type="text" class="form-control small-input" placeholder="KLÍC1" />
+        <label data-i18n="transposition.key1_label">Klíč 1:
+          <input id="key1" type="text" class="form-control small-input" placeholder="KLÍC1" data-i18n-placeholder="transposition.key1_placeholder" />
         </label>
-        <label>Klíč 2:
-          <input id="key2" type="text" class="form-control small-input" placeholder="KLÍC2 (pro dvojitou)" />
+        <label data-i18n="transposition.key2_label">Klíč 2:
+          <input id="key2" type="text" class="form-control small-input" placeholder="KLÍC2 (pro dvojitou)" data-i18n-placeholder="transposition.key2_placeholder" />
         </label>
-        <label>Doplňovací znak:
-          <input id="padChar" type="text" class="form-control small-input" value="X" maxlength="1" />
+        <label data-i18n="transposition.pad_label">Doplňovací znak:
+          <input id="padChar" type="text" class="form-control small-input" value="X" maxlength="1" data-i18n-placeholder="transposition.pad_placeholder" />
         </label>
       </div>
 
       <div class="row">
-        <label>Zápis do tabulky:
+        <label data-i18n="transposition.fill_label">Zápis do tabulky:
           <select id="fillMode" class="form-control select">
-            <option value="row-lr">Řádky zleva doprava</option>
-            <option value="row-rl">Řádky zprava doleva</option>
-            <option value="col-tb">Sloupce shora dolů</option>
-            <option value="col-bt">Sloupce zdola nahoru</option>
+            <option value="row-lr" data-i18n="fill.row-lr">Řádky zleva doprava</option>
+            <option value="row-rl" data-i18n="fill.row-rl">Řádky zprava doleva</option>
+            <option value="col-tb" data-i18n="fill.col-tb">Sloupce shora dolů</option>
+            <option value="col-bt" data-i18n="fill.col-bt">Sloupce zdola nahoru</option>
           </select>
         </label>
-        <label>Čtení z tabulky:
+        <label data-i18n="transposition.read_label">Čtení z tabulky:
           <select id="readMode" class="form-control select">
-            <option value="col-tb">Sloupce shora dolů</option>
-            <option value="col-bt">Sloupce zdola nahoru</option>
-            <option value="row-lr">Řádky zleva doprava</option>
-            <option value="row-rl">Řádky zprava doleva</option>
+            <option value="col-tb" data-i18n="read.col-tb">Sloupce shora dolů</option>
+            <option value="col-bt" data-i18n="read.col-bt">Sloupce zdola nahoru</option>
+            <option value="row-lr" data-i18n="read.row-lr">Řádky zleva doprava</option>
+            <option value="row-rl" data-i18n="read.row-rl">Řádky zprava doleva</option>
           </select>
         </label>
       </div>
 
       <div class="row">
-        <label><input id="double" type="checkbox" /> dvojitá transpozice (použij klíč 1 a 2)</label>
-        <label><input id="normalize" type="checkbox" /> normalizovat (A–Z, bez mezer/diakritiky)</label>
-        <label><input id="lettersOnly" type="checkbox" /> transponovat jen písmena (mezery a interpunkce zůstanou)</label>
+        <label><input id="double" type="checkbox" /> <span data-i18n="transposition.double_label">dvojitá transpozice (použij klíč 1 a 2)</span></label>
+        <label><input id="normalize" type="checkbox" /> <span data-i18n="transposition.normalize_label">normalizovat (A–Z, bez mezer/diakritiky)</span></label>
+        <label><input id="lettersOnly" type="checkbox" /> <span data-i18n="transposition.lettersOnly_label">transponovat jen písmena (mezery a interpunkce zůstanou)</span></label>
       </div>
 
       <div class="row" style="justify-content:center; margin-top:4px;">
-        <button id="btnEnc" class="btn primary">Zašifrovat</button>
-        <button id="btnDec" class="btn">Dešifrovat</button>
+        <button id="btnEnc" class="btn primary" data-i18n="transposition.encrypt_button">Zašifrovat</button>
+        <button id="btnDec" class="btn" data-i18n="transposition.decrypt_button">Dešifrovat</button>
       </div>
 
       <div>
-        <label>Výsledek:
-          <textarea id="output" class="form-control result" readonly placeholder="Zde se zobrazí výsledek..."></textarea>
-        </label>
+        <label data-i18n="transposition.output_label">Výsledek:
+            <textarea id="output" class="form-control result" readonly placeholder="Zde se zobrazí výsledek..." data-i18n-placeholder="transposition.output_placeholder"></textarea>
+          </label>
       </div>
     </div>
 
-    <p class="muted" style="margin-top:8px;">
+    <p class="muted" style="margin-top:8px;" data-i18n="transposition.tip_text">
       Tip: zapni <code>dvojitou transpozici</code> a změň směr zápisu nebo čtení.
       Sleduj, jak hodně se šifrotext liší od původního textu.
     </p>
@@ -145,13 +154,13 @@
   <!-- Vizualizace tabulky -->
   <div class="card grid-card">
     <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:4px;">
-      <h2>Tabulka (vizualizace)</h2>
+      <h2 data-i18n="transposition.grid_title">Tabulka (vizualizace)</h2>
       <label class="muted">
         <input type="checkbox" id="toggleGrid" checked />
-        zobrazit tabulku
+        <span data-i18n="transposition.grid_toggle">zobrazit tabulku</span>
       </label>
     </div>
-    <div id="gridInfo" class="grid-info">Tabulka se zobrazí po zadání textu a klíče.</div>
+    <div id="gridInfo" class="grid-info" data-i18n="transposition.grid_info_default">Tabulka se zobrazí po zadání textu a klíče.</div>
     <div id="gridPreview" class="grid-wrapper" style="display:none;">
       <div class="grid-table" id="gridTableContainer"></div>
     </div>
@@ -162,9 +171,28 @@
 </div>
 
 <script type="module">
+  import { initI18n } from '../js/ui/i18n.js';
+  import '../js/ui/site-header.js';
   import { transposeEncrypt, transposeDecrypt, normalizeAZ } from '../js/tools/crypto/transposition.js';
 
+  // Ensure translations are loaded before we touch the DOM
+  await initI18n();
+
   const $ = sel => document.querySelector(sel);
+
+  // wire provisional language switcher
+  const langSelectEl = document.getElementById('langSelect');
+  if (langSelectEl) {
+    // set initial value from document language set by initI18n
+    try { langSelectEl.value = document.documentElement.lang || 'cs'; } catch(e) {}
+    langSelectEl.addEventListener('change', (ev) => {
+      const lang = ev.target.value;
+      // dispatch event consumed by initI18n listener
+      window.dispatchEvent(new CustomEvent('wt:setLang', { detail: { lang } }));
+      // update select immediately
+      langSelectEl.value = lang;
+    });
+  }
 
   const inputEl       = $('#input');
   const outputEl      = $('#output');

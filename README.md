@@ -3,6 +3,7 @@
 ![index](./src/assets/WebTools_v2.png)
 
 - [web-tools](#web-tools)
+- [O nástrojích](#o-nástrojích)
 - [Průvodce pro vývojáře](#průvodce-pro-vývojáře)
   - [Instalace Node.js](#instalace-nodejs)
     - [Pomocí winget](#pomocí-winget)
@@ -14,10 +15,17 @@
     - [Otevírání v IDE](#otevírání-v-ide)
   - [Struktura projektu](#struktura-projektu)
   - [Jazyková podpora](#jazyková-podpora)
+    - [HTML stránky](#html-stránky)
+    - [`.MD` soubory](#md-soubory)
   - [Vyhledatelnost na Google](#vyhledatelnost-na-google)
     - [Sitemap](#sitemap)
     - [Open Graph meta tagy](#open-graph-meta-tagy)
     - [Registrace v Google Search Console](#registrace-v-google-search-console)
+
+# O nástrojích
+
+> [!question]
+> Rozdělit `*_explain.md` na popis a příklady?
 
 # Průvodce pro vývojáře
 
@@ -118,6 +126,11 @@ src/
 │   ├── ui/               # obecné UI komponenty (tlačítka, dialogy, notifikace)
 │   ├── vendor/           # externí knihovny (např. QRCode.js)
 │   └── pages/            # skripty pro jednotlivé nástroje
+├── i18n/                 # překladové JSON soubory
+│   ├── cs.json
+│   └── en.json
+├── css/                  # styly
+│   └── style.css
 ├── tool/                 # HTML stránky nástrojů
 │   ├── *_explain.md/     # vysvětlení nástroje
 │   └── *_tool.html/      # HTML stránka nástroje
@@ -127,6 +140,28 @@ src/
 
 ## Jazyková podpora
 
+Více jazyků je podporováno pomocí jednoduchého i18n modulu, který načítá překladové JSON soubory a nahrazuje texty na stránce.
+
+```powershell
+npm run check-i18n
+```
+
+Skript zkontroluje, zda všechny jsou správně vytvořeny překladové klíče v `src/js/i18n/`.
+
+### HTML stránky
+Jeden HTML, přepínání textů v JS:
+– všechny stránky sdílí layout a logiku,
+– texty se tahají z cs.json / en.json,
+– site-header má přepínač jazyka.
+
+I18n modul `src/js/ui/i18n.js`
+
+Lehký modul, který:
+- rozhodne jazyk (cs/en) z `?lang=cs|en v URL`,
+- načte příslušný *.json,
+- najde všechny [data-i18n] a přepíše textContent.
+
+### `.MD` soubory
 Více jazyků: `?lang=cs` → načti `explain.cs.md`, jinak `explain.en.md`.
 
 ## Vyhledatelnost na Google
