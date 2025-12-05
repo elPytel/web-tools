@@ -167,11 +167,11 @@
   </div>
 
   <script type="module" src="../js/site-doc.js"></script>
-    <site-doc src="transposition_explain.md" title="📘 Vysvětlení" toggle></site-doc>
+  <site-doc id="explainDoc" title="📘 Vysvětlení" toggle></site-doc>
 </div>
 
 <script type="module">
-  import { initI18n } from '../js/ui/i18n.js';
+  import { initI18n, getCurrentLang } from '../js/ui/i18n.js';
   import '../js/ui/site-header.js';
   import { transposeEncrypt, transposeDecrypt, normalizeAZ } from '../js/tools/crypto/transposition.js';
 
@@ -193,6 +193,34 @@
       langSelectEl.value = lang;
     });
   }
+
+  // Set the explanation document according to current language
+  const siteDocEl = document.getElementById('explainDoc');
+  const baseExplain = 'transposition_explain';
+  function updateExplainDocSrc(lang) {
+    const chosen = `${baseExplain}.${lang}.md`;
+    console.log('[transposition] setting explanation src ->', chosen);
+    if (siteDocEl) {
+      // set both attribute and property so the webcomponent instance sees the change
+      siteDocEl.setAttribute('src', chosen);
+      try { siteDocEl.src = chosen; } catch (e) { /* ignore */ }
+    }
+  }
+  // initialize from i18n state
+  try {
+    const lang = getCurrentLang();
+    updateExplainDocSrc(lang);
+    // trigger site-doc to (re)load the newly set src
+    try { siteDocEl && siteDocEl._loadMarkdown && siteDocEl._loadMarkdown(); } catch (e) { console.warn('[transposition] site-doc reload failed', e); }
+  } catch (e) {}
+
+  // also react to language changes
+  window.addEventListener('wt:setLang', (ev) => {
+    const lang = ev.detail?.lang || document.documentElement.lang || 'cs';
+    updateExplainDocSrc(lang);
+    console.log('[transposition] triggering site-doc reload for', lang);
+    try { siteDocEl && siteDocEl._loadMarkdown && siteDocEl._loadMarkdown(); } catch (e) { console.warn('[transposition] site-doc reload failed', e); }
+  });
 
   const inputEl       = $('#input');
   const outputEl      = $('#output');

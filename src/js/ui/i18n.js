@@ -97,3 +97,7 @@ function applyTranslations() {
     if (typeof val === 'string') el.setAttribute('title', val);
   });
 }
+
+export function getCurrentLang() {
+  return currentLang;
+}

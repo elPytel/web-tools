@@ -91,6 +91,7 @@ class SiteDoc extends HTMLElement {
 
   async _loadMarkdown() {
     if (!this.src) return;
+    console.log('[site-doc] loading markdown ->', this.src);
     try {
       // Ensure common markdown & highlighting libs are available. If pages didn't include
       // `marked` or `highlight.js` as globals, load lightweight CDN bundles so
@@ -170,6 +171,7 @@ class SiteDoc extends HTMLElement {
 
       // import the existing markdown_tools which handles KaTeX, highlighting and TOC
       const mod = await import('./core/markdown.js');
+      console.log('[site-doc] markdown module loaded, calling loadMarkdown for', this.src);
 
       // fallback slugify (same as earlier pages)
       const slugify = s => s
@@ -180,8 +182,10 @@ class SiteDoc extends HTMLElement {
 
       // markdown_tools.loadMarkdown expects (mdFile, targetEl, tocEl, slugify)
       await mod.loadMarkdown(this.src, this._bodyEl, this._tocEl, slugify);
+      console.log('[site-doc] loadMarkdown finished for', this.src);
     } catch (err) {
       console.warn('site-doc: failed to load markdown', err);
+      console.warn(err && err.stack ? err.stack : err);
       if (this._bodyEl) this._bodyEl.innerHTML = `<div class="muted">Nelze načíst dokumentaci: ${err && err.message ? err.message : String(err)}</div>`;
     }
   }

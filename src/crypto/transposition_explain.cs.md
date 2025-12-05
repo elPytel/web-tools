@@ -1,9 +1,9 @@
 # Transpoziční šifra
 
-Transpoziční šifra **nemění písmena**, ale **mění jejich pořadí**.
+Sloupcová transpoziční šifra **nemění písmena**, ale **mění jejich pořadí**.
 
 - Vstup: `TAJNYUTOK`
-- Výstup: `TYKAUXJTXNOX` (písmena stejná, pořadí jiné)
+- Výstup: `NOXJTXTYKAUX` (písmena stejná, pořadí jiné)
 
 > [!important]
 > Na rozdíl od substitučních šifer (Caesar, Vigenère…) zůstává **frekvence písmen stejná** – jen jsou „promíchaná“.
@@ -30,11 +30,11 @@ KLÍČ
 
 Převedeme ho na pořadí podle abecedy:
 
-* Č, I, K, L seřadíme podle abecedy: **Č (1)**, **K (2)**, **L (3)**, **Í (4)**
+- Č, I, K, L seřadíme podle abecedy: **Č (1)**, **Í (2)**, **K (3)**, **L (4)**, 
 
-| Písmeno |  Č |  K |  L |  Í |
+| Písmeno |  K |  L |  Í |  Č |
 | ------: | -: | -: | -: | -: |
-|  Pořadí |  1 |  2 |  3 |  4 |
+|  Pořadí |  3 |  4 |  2 |  1 |
 
 > [!note]
 > Pokud má klíč opakující se písmena, postupuje se typicky zleva doprava a stejná písmena dostanou pořadí podle pozice.
@@ -47,7 +47,7 @@ Text:
 
 Klíč má 4 znaky ⇒ tabulka bude mít 4 sloupce:
 
-| Č (1) | K (2) | L (3) | Í (4) |
+| K (3) | L (4) | Í (2) | Č (1) |
 | ----- | ----- | ----- | ----- |
 | T     | A     | J     | N     |
 | Y     | U     | T     | O     |
@@ -59,18 +59,17 @@ Zbývající políčka doplníme speciálním znakem (např. `X`).
 
 Čteme sloupce podle čísel:
 
-1. Sloupec s číslem 1 (Č): `T Y K`
-2. Sloupec s číslem 2 (K): `A U X`
-3. Sloupec s číslem 3 (L): `J T X`
-4. Sloupec s číslem 4 (Í): `N O X`
+1. Sloupec s číslem 1 (Č): `N O X`
+2. Sloupec s číslem 2 (Í): `J T X`
+3. Sloupec s číslem 3 (K): `T Y K`
+4. Sloupec s číslem 4 (L): `A U X`
 
 Výsledek:
 
 ```text
-TYK A U X J T X N O X
-→ TYKAUXJTXNOX
+NOXJTXTYKAUX
+Šifrotext: `NOXJTXTYKAUX`
 ```
-
 
 ## Dešifrování základní varianty
 
@@ -90,7 +89,7 @@ počet_řádků = ceil(délka_textu / počet_sloupců)
 3. Vytvoříme prázdnou tabulku 3×4 a rozdělíme šifrotext **po sloupcích** podle pořadí klíče:
 
 * první dostane sloupec s pořadím 1 (Č),
-* druhý dostane sloupec s pořadím 2 (K),
+* druhý dostane sloupec s pořadím 2 (Í),
 * atd.
 
 4. Pak čteme tabulku **po řádcích** → získáme původní text (bez doplňovacích znaků).
@@ -99,7 +98,7 @@ počet_řádků = ceil(délka_textu / počet_sloupců)
 
 V nástroji můžeme nabídnout pokročilé volby, které výrazně mění chování šifry a zároveň ukazují studentům, jak se dá bezpečnost zvýšit.
 
-### 1. Dvojitá transpozice
+### Dvojitá transpozice
 
 Dvojitá transpozice = stejný (nebo jiný) postup proveden **dvakrát za sebou**.
 
@@ -123,7 +122,7 @@ T2 je výsledný šifrotext.
 * Varianta 2: dvě různá klíčová slova (`KLÍČ1`, `KLÍČ2`)
 * Varianta 3: v druhém kole jiný směr čtení (viz níže)
 
-### 2. Směry zápisu a čtení
+### Směry zápisu a čtení
 
 Kromě „standardního“ zápisu po řádcích zleva doprava a čtení po sloupcích shora dolů můžeš ukázat různé kombinace:
 
@@ -141,14 +140,14 @@ Kromě „standardního“ zápisu po řádcích zleva doprava a čtení po slou
 * po řádcích zleva doprava / zprava doleva.
 
 > [!example]
-> V nástroji může být volba:
+> V nástroji je volba:
 >
 > * „Zápis: řádky zleva doprava / zprava doleva / sloupce…“
 > * „Čtení: sloupce ↓ / sloupce ↑ / řádky → / řádky ←“
 
 Tím získáš hezkou vizualizaci, že „stejná tabulka“ může vést k mnoha různým šifrám.
 
-### 3. Vlastní doplňovací znak (padding)
+### Vlastní doplňovací znak (padding)
 
 V základní variantě se doplňuje `X`. V praxi:
 
@@ -168,48 +167,21 @@ V nástroji:
 > * vždy doplňovat,
 > * a při dešifrování ukazovat text i s `X` a vysvětlit, co znamenají.
 
-### 4. Zachování / odstranění mezer a diakritiky
+### Zachování / odstranění mezer a diakritiky
 
-Jak se vypořádat s českým textem?
+> [!question]
+> Jak se vypořádat s českým textem?
 
 Možnosti v nástroji:
-
-* „Odstranit mezery a interpunkci“ (klasický krypto text)
-* „Zachovat mezery na svých pozicích“ (transpozici dělat jen na písmena)
-* „Nahradit diakritiku“ (`Á→A`, `Č→C`, …)
-
-Pro studenty je dobré ukázat:
+- „Odstranit mezery a interpunkci“ (klasický krypto text)
+- „Zachovat mezery na svých pozicích“ (transpozici dělat jen na písmena)
+- „Nahradit diakritiku“ (`Á→A`, `Č→C`, …)
 
 ```text
 PŮVODNÍ:  "Ahoj světe!"
 NORMAL:   "AHOJSVETE"    (bez mezer a diakritiky)
 ŠIFERTEXT: např. "AESVTJEOH"
 ```
-
-> [!tip]
-> V nástroji může být checkbox:
->
-> * `Normalizovat text (A–Z, bez mezer)`
-> * `Zachovat původní znaky (transpozice jen na písmena A–Z)`
-
-### 5. Kombinace s jinými šiframi
-
-Transpozice se často používá **v kombinaci** se substitucí:
-
-1. hrubě text „zamícháme“ transpozicí,
-2. výsledný text zašifrujeme např. Caesarovou nebo Vigenèrovou šifrou.
-
-V demo můžeš ukázat volbu:
-
-* `Nejprve Caesar, potom Transpozice`
-* `Nejprve Transpozice, potom Caesar`
-
-> [!question]
-> Ukažte rozdíl v tom, jak vypadá frekvenční analýza pro:
->
-> * samotný Caesar
-> * samotnou Transpozici
-> * kombinaci Caesar + Transpozice
 
 ## Úkoly pro čtenáře / studenta
 
@@ -225,3 +197,7 @@ V demo můžeš ukázat volbu:
    * dvojitou transpozicí.
      Porovnejte, jak moc se liší výsledný text.
 4. Zkuste ručně (bez nástroje) dešifrovat krátký text zašifrovaný transpozicí s klíčem o délce 4. Jaké informace vám pomůže odhalit **délka klíče**?
+
+## Odkazy
+
+- [Transpoziční šifra (Wikipedia)](https://cs.wikipedia.org/wiki/Transpoziční_šifra)
