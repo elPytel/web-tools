@@ -17,14 +17,20 @@ function columnOrderFromKey(key, cols) {
     return Array.from({ length: n }, (_, i) => i);
   }
 
+  // Pro konzistentní chování (viz docs) normalizujeme klíč pro účely řazení:
+  // použijeme `normalizeAZ` (odstraní diakritiku, převod na A-Z)
+  const keyForSort = normalizeAZ(String(key));
+
   const pairs = Array.from({ length: n }, (_, i) => ({
     idx: i,
-    ch: key[i] ?? String.fromCharCode(0x7f + i) // fallback pro kratší klíče
+    // chSort se používá pro řazení (normalizovaná verze), chOrig zachovat konzistenci
+    chSort: keyForSort[i] ?? String.fromCharCode(0x7f + i),
+    chOrig: key[i] ?? String.fromCharCode(0x7f + i)
   }));
 
   pairs.sort((a, b) => {
-    const ca = a.ch.toUpperCase();
-    const cb = b.ch.toUpperCase();
+    const ca = a.chSort;
+    const cb = b.chSort;
     if (ca < cb) return -1;
     if (ca > cb) return 1;
     return a.idx - b.idx; // stabilní pořadí při duplicitách
@@ -100,27 +106,37 @@ function coreEncrypt(text, {
   const total = text.length;
   const rows = Math.ceil(total / cols);
   const cellCount = rows * cols;
-
-  const padded = text.padEnd(cellCount, padChar);
+  const noPad = padChar === '' || padChar === null;
+  const padded = noPad ? text : text.padEnd(cellCount, padChar);
 
   const fillOrder = buildFillOrder(rows, cols, fillMode);
   const readOrder = buildReadOrder(rows, cols, key, readMode);
 
   const grid = Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => padChar)
+    Array.from({ length: cols }, () => undefined)
   );
 
-  // Naplnění mřížky podle fillOrder
+  // Map position -> fill index (0..cellCount-1)
+  const posFillIndex = new Map();
   for (let i = 0; i < cellCount; i++) {
+    const { r, c } = fillOrder[i];
+    posFillIndex.set(`${r},${c}`, i);
+  }
+
+  // Naplnění mřížky podle fillOrder. Pokud noPad, naplníme pouze první `total` znaků.
+  const fillLimit = noPad ? total : cellCount;
+  for (let i = 0; i < fillLimit; i++) {
     const { r, c } = fillOrder[i];
     grid[r][c] = padded[i];
   }
 
-  // Čtení podle readOrder
+  // Čtení podle readOrder; při noPad přeskočíme buňky, které nebyly naplněny (index >= total)
   let out = '';
-  for (let i = 0; i < cellCount; i++) {
+  for (let i = 0; i < readOrder.length; i++) {
     const { r, c } = readOrder[i];
-    out += grid[r][c];
+    const fillIdx = posFillIndex.get(`${r},${c}`);
+    if (noPad && (fillIdx === undefined || fillIdx >= total)) continue;
+    out += grid[r][c] ?? (noPad ? '' : padChar);
   }
   return out;
 }
@@ -135,27 +151,51 @@ function coreDecrypt(cipher, {
   const total = cipher.length;
   const rows = Math.ceil(total / cols);
   const cellCount = rows * cols;
-
-  const padded = cipher.padEnd(cellCount, padChar);
+  const noPad = padChar === '' || padChar === null;
+  const padded = noPad ? cipher : cipher.padEnd(cellCount, padChar);
 
   const fillOrder = buildFillOrder(rows, cols, fillMode);
   const readOrder = buildReadOrder(rows, cols, key, readMode);
 
   const grid = Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => padChar)
+    Array.from({ length: cols }, () => undefined)
   );
 
-  // Při dešifrování plníme mřížku v pořadí readOrder
-  for (let i = 0; i < cellCount; i++) {
-    const { r, c } = readOrder[i];
-    grid[r][c] = padded[i];
-  }
-
-  // Čtení v pořadí fillOrder (opačný směr)
-  let out = '';
+  // Map position -> fill index (0..cellCount-1)
+  const posFillIndex = new Map();
   for (let i = 0; i < cellCount; i++) {
     const { r, c } = fillOrder[i];
-    out += grid[r][c];
+    posFillIndex.set(`${r},${c}`, i);
+  }
+
+  // Při dešifrování plníme mřížku v pořadí readOrder; pokud noPad, plníme pouze první `total` znaků
+  if (noPad) {
+    // Při noPad musíme přiřazovat znaky z cipheru pouze do těch readOrder položek,
+    // které odpovídají naplněným buňkám (tj. mají fillIdx < total). Postupujeme
+    // stejným způsobem, jakým šifrování čte buňky.
+    let p = 0;
+    for (let i = 0; i < readOrder.length && p < total; i++) {
+      const { r, c } = readOrder[i];
+      const fillIdx = posFillIndex.get(`${r},${c}`);
+      if (fillIdx !== undefined && fillIdx < total) {
+        grid[r][c] = padded[p++];
+      }
+    }
+  } else {
+    const fillLimit = cellCount;
+    for (let i = 0; i < fillLimit; i++) {
+      const { r, c } = readOrder[i];
+      grid[r][c] = padded[i];
+    }
+  }
+
+  // Čtení v pořadí fillOrder; při noPad přeskočíme buňky, které nebyly naplněny
+  let out = '';
+  for (let i = 0; i < fillOrder.length; i++) {
+    const { r, c } = fillOrder[i];
+    const fillIdx = posFillIndex.get(`${r},${c}`);
+    if (noPad && (fillIdx === undefined || fillIdx >= total)) continue;
+    out += grid[r][c] ?? (noPad ? '' : padChar);
   }
   return out;
 }
@@ -217,7 +257,7 @@ export function transposeEncrypt(plainText, options = {}) {
     lettersOnly = false
   } = options;
 
-  const pad = (padChar && padChar.length) ? padChar[0] : 'X';
+  const pad = (padChar === '' || padChar === null) ? '' : ((padChar && padChar.length) ? padChar[0] : 'X');
 
   const coreOpts1 = { key: key1, fillMode, readMode, padChar: pad };
   const coreOpts2 = { key: key2 || key1, fillMode, readMode, padChar: pad };
@@ -233,10 +273,12 @@ export function transposeEncrypt(plainText, options = {}) {
 
   if (lettersOnly && !normalize) {
     // Transpozice jen na písmena, ostatní znaky zůstávají na místě.
-    const fn = double ? applyDouble : applyOnce;
+    // Použijeme režim bez paddingu (padChar = '') aby byla dvojitá transpozice invertibilní.
+    coreOpts1.padChar = '';
+    coreOpts2.padChar = '';
+    const fn = double ? (input => coreEncrypt(coreEncrypt(input, coreOpts1), coreOpts2)) : (input => coreEncrypt(input, coreOpts1));
     return transformLettersOnly(text, (letters) => {
       const enc = fn(letters);
-      // Ořízneme doplňovací znaky navíc – zachováme původní počet písmen
       return enc.slice(0, letters.length);
     });
   } else {
@@ -258,7 +300,7 @@ export function transposeDecrypt(cipherText, options = {}) {
     lettersOnly = false
   } = options;
 
-  const pad = (padChar && padChar.length) ? padChar[0] : 'X';
+  const pad = (padChar === '' || padChar === null) ? '' : ((padChar && padChar.length) ? padChar[0] : 'X');
 
   const coreOpts1 = { key: key1, fillMode, readMode, padChar: pad };
   const coreOpts2 = { key: key2 || key1, fillMode, readMode, padChar: pad };
@@ -271,7 +313,10 @@ export function transposeDecrypt(cipherText, options = {}) {
   // E = E2(E1(P)) → D = D1(D2(C))
 
   if (lettersOnly && !normalize) {
-    const fn = double ? applyDouble : applyOnce;
+    // Use no-padding mode for letters-only decryption as well
+    coreOpts1.padChar = '';
+    coreOpts2.padChar = '';
+    const fn = double ? (input => coreDecrypt(coreDecrypt(input, coreOpts2), coreOpts1)) : (input => coreDecrypt(input, coreOpts1));
     return transformLettersOnly(text, (letters) => {
       const dec = fn(letters);
       return dec.slice(0, letters.length);
