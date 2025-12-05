@@ -16,6 +16,8 @@ class SiteDoc extends HTMLElement {
     this.title = this.getAttribute('title') || DEFAULT_TITLE;
     this.toggleable = this.hasAttribute('toggle');
 
+    console.log('[site-doc] connectedCallback', { src: this.src, title: this.title, toggleable: this.toggleable });
+
     this._renderShell();
     // load markdown asynchronously
     this._loadMarkdown();
@@ -87,40 +89,48 @@ class SiteDoc extends HTMLElement {
     // expose for loader
     this._bodyEl = body;
     this._tocEl = toc;
+    console.log('[site-doc] shell rendered; body/toc elements created');
   }
 
   async _loadMarkdown() {
-    if (!this.src) return;
+    if (!this.src) {
+      console.warn('[site-doc] _loadMarkdown called but `src` is empty');
+      return;
+    }
     console.log('[site-doc] loading markdown ->', this.src);
     try {
       // Ensure common markdown & highlighting libs are available. If pages didn't include
       // `marked` or `highlight.js` as globals, load lightweight CDN bundles so
       // _loadMarkdown can render reliably.
       const loadScriptOnce = (src, tagAttr) => new Promise((resolve, reject) => {
+        console.log('[site-doc] loadScriptOnce requested for', src, { tagAttr });
         const existing = document.querySelector(`script[src="${src}"]`);
         if (existing) {
+          console.log('[site-doc] script element already present for', src);
           if (existing.getAttribute('data-site-doc-loaded') === '1') return resolve();
-          existing.addEventListener('load', () => { existing.setAttribute('data-site-doc-loaded', '1'); resolve(); });
-          existing.addEventListener('error', (e) => reject(new Error('Failed loading ' + src)));
+          existing.addEventListener('load', () => { existing.setAttribute('data-site-doc-loaded', '1'); console.log('[site-doc] existing script loaded', src); resolve(); });
+          existing.addEventListener('error', (e) => { console.warn('[site-doc] existing script error', src, e); reject(new Error('Failed loading ' + src)); });
           return;
         }
         const s = document.createElement('script');
         if (tagAttr) s.setAttribute('data-site-doc', tagAttr);
         s.src = src;
         s.async = true;
-        s.onload = () => { s.setAttribute('data-site-doc-loaded', '1'); resolve(); };
-        s.onerror = () => reject(new Error('Failed loading ' + src));
+        s.onload = () => { s.setAttribute('data-site-doc-loaded', '1'); console.log('[site-doc] script loaded', src); resolve(); };
+        s.onerror = (ev) => { console.warn('[site-doc] script failed to load', src, ev); reject(new Error('Failed loading ' + src)); };
         document.head.appendChild(s);
       });
 
       const loadCssOnce = (href) => new Promise((resolve) => {
+        console.log('[site-doc] loadCssOnce requested for', href);
         const existing = document.querySelector(`link[href="${href}"]`);
-        if (existing) return resolve();
+        if (existing) { console.log('[site-doc] stylesheet already present for', href); return resolve(); }
         const l = document.createElement('link');
         l.rel = 'stylesheet';
         l.href = href;
         document.head.appendChild(l);
         // stylesheets don't reliably fire load across all browsers; resolve immediately.
+        console.log('[site-doc] stylesheet appended', href);
         resolve();
       });
 
@@ -133,32 +143,42 @@ class SiteDoc extends HTMLElement {
 
         // marked (markdown parser) — try CDN, then local
         if (!window.marked) {
+          console.log('[site-doc] marked not present; attempting CDN then local');
           try {
             await loadScriptOnce('https://cdn.jsdelivr.net/npm/marked/marked.min.js', 'marked-cdn');
+            console.log('[site-doc] loaded marked from CDN');
           } catch (cdnErr) {
             console.warn('site-doc: CDN marked failed, attempting local vendor', cdnErr);
             try {
               await loadScriptOnce(localMarked, 'marked-local');
+              console.log('[site-doc] loaded marked from local vendor', localMarked);
             } catch (localErr) {
               console.warn('site-doc: local marked fallback failed', localErr);
             }
           }
+        } else {
+          console.log('[site-doc] marked already available on window');
         }
 
         // highlight.js (syntax highlighting + optional stylesheet) — try CDN, then local
         if (!window.hljs) {
+          console.log('[site-doc] hljs not present; attempting CDN then local');
           try {
             await loadCssOnce('https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/styles/github-dark.min.css');
             await loadScriptOnce('https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/lib/common.min.js', 'hljs-cdn');
+            console.log('[site-doc] loaded highlight.js from CDN');
           } catch (cdnErr) {
             console.warn('site-doc: CDN highlight.js failed, attempting local vendor', cdnErr);
             try {
               await loadCssOnce(localCss);
               await loadScriptOnce(localHljs, 'hljs-local');
+              console.log('[site-doc] loaded highlight.js from local vendor', localHljs);
             } catch (localErr) {
               console.warn('site-doc: local highlight.js fallback failed', localErr);
             }
           }
+        } else {
+          console.log('[site-doc] hljs already available on window');
         }
       }
 
