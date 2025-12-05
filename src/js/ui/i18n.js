@@ -45,7 +45,8 @@ export async function setLang(lang) {
 
 async function loadLang(lang) {
   // Resolve path relative to this module so fetch works regardless of page location
-  const url = new URL(`../i18n/${lang}.json`, import.meta.url).href;
+  // Translations moved from `src/js/i18n/` to `src/locale/`
+  const url = new URL(`../../locale/${lang}.json`, import.meta.url).href;
   const resp = await fetch(url);
   dict = await resp.json();
 }

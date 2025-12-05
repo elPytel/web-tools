@@ -126,7 +126,7 @@ src/
 │   ├── ui/               # obecné UI komponenty (tlačítka, dialogy, notifikace)
 │   ├── vendor/           # externí knihovny (např. QRCode.js)
 │   └── pages/            # skripty pro jednotlivé nástroje
-├── i18n/                 # překladové JSON soubory
+├── locale/               # překladové JSON soubory
 │   ├── cs.json
 │   └── en.json
 ├── css/                  # styly

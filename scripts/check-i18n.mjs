@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 const SRC = path.join(ROOT, 'src');
-const I18N_DIR = path.join(SRC, 'js', 'i18n');
+const I18N_DIR = path.join(SRC, 'locale');
 
 // Simple ANSI color helpers (no external deps)
 const c = {
