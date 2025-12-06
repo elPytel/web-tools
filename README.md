@@ -17,6 +17,7 @@
     - [Scripty](#scripty)
   - [Jazyková podpora](#jazyková-podpora)
     - [HTML stránky](#html-stránky)
+    - [Kontrolní skript](#kontrolní-skript)
     - [`.MD` soubory](#md-soubory)
   - [Vyhledatelnost na Google](#vyhledatelnost-na-google)
     - [Sitemap](#sitemap)
@@ -159,11 +160,6 @@ TOTAL    |     42 |         9491
 
 Více jazyků je podporováno pomocí jednoduchého i18n modulu, který načítá překladové JSON soubory a nahrazuje texty na stránce.
 
-```powershell
-npm run check-i18n
-```
-
-Skript zkontroluje, zda všechny jsou správně vytvořeny překladové klíče v `src/locale/`.
 
 ### HTML stránky
 Jeden HTML, přepínání textů v JS:
@@ -177,6 +173,25 @@ Lehký modul, který:
 - rozhodne jazyk (cs/en) z `?lang=cs|en v URL`,
 - načte příslušný *.json,
 - najde všechny [data-i18n] a přepíše textContent.
+
+Struktura `src/locale/`:
+```text
+locale/
+├── index.cs.json
+├── index.en.json
+├── common.cs.json
+├── common.en.json
+├── toolX.cs.json
+└── toolX.en.json
+```
+
+### Kontrolní skript
+
+Skript zkontroluje, zda jsou pro všechny překlady správně vytvořeny překladové klíče v `src/locale/`.
+
+```powershell
+npm run check-i18n
+```
 
 ### `.MD` soubory
 Více jazyků: `?lang=cs` → načti `explain.cs.md`, jinak `explain.en.md`.
