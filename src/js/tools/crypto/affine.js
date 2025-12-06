@@ -1,4 +1,5 @@
 import Cipher from './cipher.js';
+import { mod, modInv, gcd } from '../../core/math_tools.js';
 
 /**
  * Affine cipher: E(x) = (a * x + b) mod 26
@@ -63,28 +64,3 @@ export class AffineCipher extends Cipher {
 }
 
 export default AffineCipher;
-
-// --- helpers ---
-function mod(n, m) {
-  return ((n % m) + m) % m;
-}
-
-function egcd(a, b) {
-  if (b === 0) return { g: a, x: 1, y: 0 };
-  const res = egcd(b, a % b);
-  return { g: res.g, x: res.y, y: res.x - Math.floor(a / b) * res.y };
-}
-
-function modInv(a, m) {
-  const res = egcd(a, m);
-  if (res.g !== 1) return null;
-  return mod(res.x, m);
-}
-
-function gcd(a, b) {
-  a = Math.abs(a); b = Math.abs(b);
-  while (b) {
-    const t = b; b = a % b; a = t;
-  }
-  return a;
-}
