@@ -40,7 +40,7 @@
           "name": "Caesarova šifra",
           "desc": "Jednoduché posunutí písmen o pevný počet míst.",
           "difficulty": "🟢",
-          "path": "crypto/Caesar_cipher.html",
+          "path": "crypto/caesar_cipher.html",
           "tags": ["šifra", "posun", "základy"],
           "hasExplain": true
         },

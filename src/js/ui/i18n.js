@@ -134,3 +134,35 @@ function mergeDict(target, src) {
     }
   }
 }
+
+function detectToolNameFromPath(pathname = location.pathname) {
+  try {
+    const last = pathname.split('/').filter(Boolean).pop() || '';
+    return last.replace(/\.html?$/i, '');
+  } catch (e) {
+    return '';
+  }
+}
+
+export async function autoLoadPageTranslations(name) {
+  const toolName = name || detectToolNameFromPath();
+  if (!toolName) return;
+  try {
+    await loadLangFile(toolName);
+  } catch (e) {
+    console.warn('[i18n] autoLoadPageTranslations failed to load', toolName, e && e.message);
+  }
+
+  // ensure we only register one listener per tool
+  const flag = `__i18n_auto_loaded__:${toolName}`;
+  if (window[flag]) return;
+  window[flag] = true;
+
+  window.addEventListener('wt:setLang', async () => {
+    try {
+      await loadLangFile(toolName);
+    } catch (e) {
+      console.warn('[i18n] failed to reload tool translations for', toolName, e && e.message);
+    }
+  });
+}

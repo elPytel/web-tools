@@ -171,7 +171,7 @@
 </div>
 
 <script type="module">
-  import { initI18n, getCurrentLang, loadTranslationsFile } from '../js/ui/i18n.js';
+  import { initI18n, getCurrentLang, autoLoadPageTranslations } from '../js/ui/i18n.js';
   import '../js/ui/site-header.js';
   import { transposeEncrypt, transposeDecrypt, normalizeAZ } from '../js/tools/crypto/transposition.js';
 
@@ -210,11 +210,11 @@
   try {
     const lang = getCurrentLang();
     updateExplainDocSrc(lang);
-    // Load tool-specific translations (merged into global dict)
+    // Load tool-specific translations (auto-detected from path)
     try {
-      await loadTranslationsFile('transposition');
+      await autoLoadPageTranslations();
     } catch (e) {
-      console.warn('[transposition] failed to load tool translations', e.message);
+      console.warn('[transposition] failed to auto-load tool translations', e && e.message);
     }
     // trigger site-doc to (re)load the newly set src
     try { siteDocEl && siteDocEl._loadMarkdown && siteDocEl._loadMarkdown(); } catch (e) { console.warn('[transposition] site-doc reload failed', e); }
@@ -224,12 +224,7 @@
   window.addEventListener('wt:setLang', async (ev) => {
     const lang = ev.detail?.lang || document.documentElement.lang || 'cs';
     updateExplainDocSrc(lang);
-    // load tool-specific translations for the new language
-    try {
-      await loadTranslationsFile('transposition');
-    } catch (e) {
-      console.warn('[transposition] failed to load tool translations on lang change', e && e.message);
-    }
+    // tool-specific translations are auto-loaded by the i18n helper
     console.log('[transposition] triggering site-doc reload for', lang);
     try { siteDocEl && siteDocEl._loadMarkdown && siteDocEl._loadMarkdown(); } catch (e) { console.warn('[transposition] site-doc reload failed', e); }
   });
