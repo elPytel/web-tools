@@ -18,7 +18,8 @@ const state = {
 function ensureCtx() {
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
-    gain = ctx.createGain();        gain.gain.value = 0.0;
+    gain = ctx.createGain();
+    gain.gain.value = 0.0;
     comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -12;
     comp.ratio.value = 4;

@@ -24,7 +24,7 @@ function getNested(obj, path) {
 
 export async function initI18n() {
   currentLang = detectLang();
-  await loadLang(currentLang);
+  await loadBaseLang(currentLang);
   applyTranslations();
 
   // pro přepínač v site-headeru -> poslouchat custom eventy
@@ -39,16 +39,35 @@ export async function setLang(lang) {
   if (lang === currentLang) return;
   localStorage.setItem('wt_lang', lang);
   currentLang = lang;
-  await loadLang(lang);
+  await loadBaseLang(lang);
   applyTranslations();
 }
 
-async function loadLang(lang) {
-  // Resolve path relative to this module so fetch works regardless of page location
-  // Translations moved from `src/js/i18n/` to `src/locale/`
-  const url = new URL(`../../locale/${lang}.json`, import.meta.url).href;
+async function loadBaseLang(lang) {
+  // Load canonical files: index.<lang>.json and common.<lang>.json if they exist.
+  dict = {};
+  const baseNames = ['index', 'common'];
+  for (const name of baseNames) {
+    const url = new URL(`../../locale/${name}.${lang}.json`, import.meta.url).href;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) continue;
+      const obj = await resp.json();
+      mergeDict(dict, obj);
+    } catch (e) {
+      // ignore missing or parse errors for optional files
+      console.warn('[i18n] failed to load', url, e.message);
+    }
+  }
+}
+
+async function loadLangFile(name) {
+  const url = new URL(`../../locale/${name}.${currentLang}.json`, import.meta.url).href;
   const resp = await fetch(url);
-  dict = await resp.json();
+  if (!resp.ok) throw new Error(`Failed to load ${url}: ${resp.status}`);
+  const obj = await resp.json();
+  mergeDict(dict, obj);
+  applyTranslations();
 }
 
 function applyTranslations() {
@@ -101,4 +120,17 @@ function applyTranslations() {
 
 export function getCurrentLang() {
   return currentLang;
+}
+
+export { loadLangFile as loadTranslationsFile };
+
+function mergeDict(target, src) {
+  for (const k of Object.keys(src || {})) {
+    if (src[k] && typeof src[k] === 'object' && !Array.isArray(src[k])) {
+      if (!target[k] || typeof target[k] !== 'object') target[k] = {};
+      mergeDict(target[k], src[k]);
+    } else {
+      target[k] = src[k];
+    }
+  }
 }

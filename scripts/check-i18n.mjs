@@ -37,10 +37,25 @@ async function loadI18nFiles() {
   const jsons = files.filter(f => f.endsWith('.json'));
   const out = {};
   for (const f of jsons) {
-    const lang = path.basename(f, '.json');
+    // Expect filenames like name.lang.json (e.g. transposition.en.json)
+    const parts = f.split('.');
+    if (parts.length < 3) continue; // skip unexpected files
+    const lang = parts[parts.length - 2];
     const txt = await fs.readFile(path.join(I18N_DIR, f), 'utf8');
     try {
-      out[lang] = JSON.parse(txt);
+      const parsed = JSON.parse(txt);
+      if (!out[lang]) out[lang] = {};
+      // merge parsed into out[lang]
+      (function merge(target, src) {
+        for (const k of Object.keys(src || {})) {
+          if (src[k] && typeof src[k] === 'object' && !Array.isArray(src[k])) {
+            if (!target[k] || typeof target[k] !== 'object') target[k] = {};
+            merge(target[k], src[k]);
+          } else {
+            target[k] = src[k];
+          }
+        }
+      })(out[lang], parsed);
     } catch (e) {
       console.error(`ERROR: failed to parse ${f}: ${e.message}`);
       process.exitCode = 2;

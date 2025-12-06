@@ -1,0 +1,7 @@
+{
+  "actions": {
+    "copy": "Copy",
+    "paste": "Paste",
+    "clear": "Clear"
+  }
+}
