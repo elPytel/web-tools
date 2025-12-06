@@ -1,3 +1,32 @@
+import { Cipher } from './cipher.js';
+
+/**
+ * Caesar Cipher implementation
+ * Extends the base Cipher class.
+ * 
+ * Uses a simple shift for encryption and decryption.
+ * 
+ * Options:
+ * - shift: number of positions to shift (default: 3)
+ */
+export class CaesarCipher extends Cipher {
+  constructor(options = {}) {
+    super(options);
+    const defaults = { shift: 3 };
+    this.options = Object.assign({}, defaults, this.options || {}, options || {});
+  }
+
+  encrypt(plaintext, opts = {}) {
+    const { shift } = Object.assign({}, this.options, opts);
+    return caesarShift(plaintext, shift);
+  }
+
+  decrypt(ciphertext, opts = {}) {
+    const { shift } = Object.assign({}, this.options, opts);
+    return caesarShift(ciphertext, -shift);
+  }
+}
+
 export function caesarShift(str, shift) {
   if (typeof str !== 'string') throw new TypeError('str must be a string');
   if (typeof shift !== 'number' || !Number.isFinite(shift)) throw new TypeError('shift must be a number');

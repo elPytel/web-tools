@@ -14,6 +14,7 @@
     - [S podporou načítání skriptů (lokální server)](#s-podporou-načítání-skriptů-lokální-server)
     - [Otevírání v IDE](#otevírání-v-ide)
   - [Struktura projektu](#struktura-projektu)
+    - [Scripty](#scripty)
   - [Jazyková podpora](#jazyková-podpora)
     - [HTML stránky](#html-stránky)
     - [`.MD` soubory](#md-soubory)
@@ -138,6 +139,22 @@ src/
 └── index.html            # hlavní stránka generovaná z tools.json
 ```
 
+### Scripty
+
+`.\numer_of_lines_of_code.bat` – spočítá řádky kódu v *.js *.html a *.css souborech.
+
+```powershell
+Statistiky po typu souboru (pracovni adresar: E:\Git\web-tools)
+
+Type     |  Files |        Lines
+-
+.js      |     18 |         2725
+.html    |     20 |         5896
+.css     |      4 |          870
+-
+TOTAL    |     42 |         9491
+```
+
 ## Jazyková podpora
 
 Více jazyků je podporováno pomocí jednoduchého i18n modulu, který načítá překladové JSON soubory a nahrazuje texty na stránce.
@@ -146,7 +163,7 @@ Více jazyků je podporováno pomocí jednoduchého i18n modulu, který načít�
 npm run check-i18n
 ```
 
-Skript zkontroluje, zda všechny jsou správně vytvořeny překladové klíče v `src/js/i18n/`.
+Skript zkontroluje, zda všechny jsou správně vytvořeny překladové klíče v `src/locale/`.
 
 ### HTML stránky
 Jeden HTML, přepínání textů v JS:
