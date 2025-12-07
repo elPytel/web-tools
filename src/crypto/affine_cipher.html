@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <title>Affiní šifra – demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .controls { display:grid; gap:10px }
+    textarea { height:120px; font-size:16px }
+    .result { margin-top:12px; white-space:pre-wrap }
+    .center { text-align:center }
+    .small-input { width:90px; max-width:30vw }
+    .row { display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <script type="module" src="../js/ui/site-header.js"></script>
+    <site-header title="🔐 Affiní šifra" data-i18n="affine.header"></site-header>
+
+    <div class="card">
+      <p class="muted" data-i18n="affine.description">Affiní šifra: <code>E(x) = (a·x + b) mod 26</code> &nbsp;|&nbsp; <em>a</em> musí být nesoudělné s 26.</p>
+
+      <div class="controls">
+        <textarea id="text" class="form-control" placeholder="Zadej text..." data-i18n-placeholder="affine.text_placeholder"></textarea>
+
+        <div class="row">
+          <label style="display:flex;gap:8px;align-items:center" data-i18n="affine.a_label">a:
+            <!-- Povolené hodnoty a (gcd(a,26)=1) -->
+            <select id="a" class="form-control small-input">
+              <option>1</option><option>3</option><option selected>5</option><option>7</option>
+              <option>9</option><option>11</option><option>15</option><option>17</option>
+              <option>19</option><option>21</option><option>23</option><option>25</option>
+            </select>
+          </label>
+          <label style="display:flex;gap:8px;align-items:center" data-i18n="affine.b_label">b:
+            <input class="small-input form-control" type="number" id="b" value="8" min="0" max="25">
+          </label>
+        </div>
+
+        <div class="row">
+          <button id="btnEncrypt" data-i18n="affine.encrypt_button">Zašifruj</button>
+          <button id="btnDecrypt" data-i18n="affine.decrypt_button">Dešifruj</button>
+        </div>
+
+        <div id="result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- Vysvětlení (stejný komponent jako u Caesar/Vigenere) -->
+    <script type="module" src="../js/site-doc.js"></script>
+    <site-doc src="affine_explain.md" data-i18n-title="site.explain" toggle></site-doc>
+  </div>
+
+  <script type="module">
+    const $ = sel => document.querySelector(sel);
+
+    async function init() {
+      try {
+        // Použijeme tvou třídu AffineCipher (soubor viz níže)
+        const { AffineCipher } = await import('../js/tools/crypto/affine.js');
+        const cipher = new AffineCipher({ a: 5, b: 8 });
+
+        function readParams() {
+          const a = parseInt($('#a').value, 10);
+          const b = Math.max(0, Math.min(25, parseInt($('#b').value, 10) || 0));
+          return { a, b };
+        }
+
+        function setResult(text, ok = true) {
+          const el = $('#result');
+          el.textContent = text;
+          el.style.color = ok ? 'inherit' : 'crimson';
+        }
+
+        $('#btnEncrypt').addEventListener('click', () => {
+          const txt = $('#text').value || '';
+          const { a, b } = readParams();
+          try {
+            const out = cipher.encrypt(txt, { a, b });
+            setResult('🔒 Zašifrovaný text:\n' + out, true);
+          } catch (e) {
+            setResult('Chyba: ' + (e?.message || e), false);
+          }
+        });
+
+        $('#btnDecrypt').addEventListener('click', () => {
+          const txt = $('#text').value || '';
+          const { a, b } = readParams();
+          try {
+            const out = cipher.decrypt(txt, { a, b });
+            setResult('🔓 Dešifrovaný text:\n' + out, true);
+          } catch (e) {
+            setResult('Chyba: ' + (e?.message || e), false);
+          }
+        });
+
+      } catch (err) {
+        console.error('Affine init error', err);
+        const r = document.getElementById('result');
+        r.textContent = 'Chyba: nepodařilo se načíst modul `../js/tools/crypto/affine.js`.\n' +
+                        'Spusť stránku přes lokální HTTP server (např. `npx http-server src`).';
+        r.style.color = 'crimson';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

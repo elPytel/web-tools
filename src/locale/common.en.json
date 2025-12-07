@@ -1,0 +1,11 @@
+{
+  "actions": {
+    "copy": "Copy",
+    "paste": "Paste",
+    "clear": "Clear"
+  }
+  ,
+  "site": {
+    "explain": "📘 Explanation"
+  }
+}

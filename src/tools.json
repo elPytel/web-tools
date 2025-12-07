@@ -40,17 +40,26 @@
           "name": "Caesarova šifra",
           "desc": "Jednoduché posunutí písmen o pevný počet míst.",
           "difficulty": "🟢",
-          "path": "crypto/Caesar_cipher.html",
+          "path": "crypto/caesar_cipher.html",
           "tags": ["šifra", "posun", "základy"],
           "hasExplain": true
         },
         {
-          "id": "Morse",
-          "name": "Morseova abeceda",
-          "desc": "Převod textu na Morseovu abecedu a syntéza zvuku.",
-          "difficulty": "🟢",
-          "path": "crypto/Morse_code.html",
-          "tags": ["šifra", "morse", "zvuk"]
+          "id": "transposition",
+          "name": "Transpoziční šifra",
+          "desc": "Šifra založená na přeskupení písmen podle klíčového slova.",
+          "difficulty": "🟡",
+          "path": "crypto/transposition.html",
+          "tags": ["šifra", "transpozice", "tabulka"],
+          "hasExplain": true
+        },
+        {
+          "id": "affine",
+          "name": "Afinní šifra",
+          "desc": "Lineární šifra kombinující násobení a posun písmen.",
+          "difficulty": "🟡",
+          "path": "crypto/affine_cipher.html",
+          "tags": ["šifra", "afinní", "substituce"]
         }
       ]
     },
@@ -76,6 +85,15 @@
       "chip": "🧮 Kódování",
       "color": "#10b981",
       "tools": [
+        {
+          "id": "Morse",
+          "name": "Morseova abeceda",
+          "desc": "Převod textu na Morseovu abecedu a syntéza zvuku.",
+          "difficulty": "🟢",
+          "path": "encoding/morse_code.html",
+          "tags": ["šifra", "morse", "zvuk"],
+          "hasExplain": true
+        },
         {
           "id": "ascii",
           "name": "ASCII převodník",

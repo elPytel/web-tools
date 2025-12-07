@@ -1,0 +1,39 @@
+{
+  "transposition": {
+    "header": "🔀 Transpoziční šifra",
+    "description": "Transpoziční šifra mění pořadí znaků, ale nemění samotná písmena.",
+    "input_label": "Vstupní text:",
+    "input_placeholder": "Zadej text k zašifrování / dešifrování...",
+    "key1_label": "Klíč 1:",
+    "key1_placeholder": "KLÍC1",
+    "key2_label": "Klíč 2:",
+    "key2_placeholder": "KLÍC2 (pro dvojitou)",
+    "pad_label": "Doplňovací znak:",
+    "pad_placeholder": "X",
+    "fill_label": "Zápis do tabulky:",
+    "read_label": "Čtení z tabulky:",
+    "double_label": "dvojitá transpozice (použij klíč 1 a 2)",
+    "normalize_label": "normalizovat (A–Z, bez mezer/diakritiky)",
+    "lettersOnly_label": "transponovat jen písmena (mezery a interpunkce zůstanou)",
+    "encrypt_button": "Zašifrovat",
+    "decrypt_button": "Dešifrovat",
+    "output_label": "Výsledek:",
+    "output_placeholder": "Zde se zobrazí výsledek...",
+    "tip_text": "Tip: zapni dvojitou transpozici a změň směr zápisu nebo čtení.",
+    "grid_title": "Tabulka (vizualizace)",
+    "grid_toggle": "zobrazit tabulku",
+    "grid_info_default": "Tabulka se zobrazí po zadání textu a klíče."
+  },
+  "fill": {
+    "row-lr": "Řádky zleva doprava",
+    "row-rl": "Řádky zprava doleva",
+    "col-tb": "Sloupce shora dolů",
+    "col-bt": "Sloupce zdola nahoru"
+  },
+  "read": {
+    "col-tb": "Sloupce shora dolů",
+    "col-bt": "Sloupce zdola nahoru",
+    "row-lr": "Řádky zleva doprava",
+    "row-rl": "Řádky zprava doleva"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "affine": {
+    "header": "🔐 Affiní šifra",
+    "description": "Affiní šifra: E(x) = (a·x + b) mod 26 — a musí být nesoudělné s 26.",
+    "text_placeholder": "Zadej text...",
+    "a_label": "a:",
+    "b_label": "b:",
+    "encrypt_button": "Zašifruj",
+    "decrypt_button": "Dešifruj",
+    "result_title": "Výsledek"
+  }
+}
