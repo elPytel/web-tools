@@ -2,19 +2,28 @@
 
 const SUPPORTED = ['cs', 'en'];
 const DEFAULT_LANG = 'cs';
+const STORAGE_KEY = 'wt_lang';
 
 let currentLang = DEFAULT_LANG;
 let dict = null;
 
 function detectLang() {
   const fromUrl = new URLSearchParams(location.search).get('lang');
-  if (fromUrl && SUPPORTED.includes(fromUrl)) return fromUrl;
+  if (fromUrl && SUPPORTED.includes(fromUrl)) {
+    console.info('[i18n] detectLang from URL param:', fromUrl);
+    return fromUrl;
+  }
 
-  const fromStorage = localStorage.getItem('wt_lang');
-  if (fromStorage && SUPPORTED.includes(fromStorage)) return fromStorage;
+  const fromStorage = localStorage.getItem(STORAGE_KEY);
+  if (fromStorage && SUPPORTED.includes(fromStorage)) {
+    console.info('[i18n] detectLang from localStorage:', fromStorage);
+    return fromStorage;
+  }
 
-  const nav = navigator.language || navigator.userLanguage || 'cs';
-  if (nav.toLowerCase().startsWith('cs')) return 'cs';
+  const nav = navigator.language || navigator.userLanguage || 'cs';console.info('[i18n] detectLang from navigator.language:', nav);
+  if (nav.toLowerCase().startsWith('cs')) {
+    return 'cs';
+  }
   return 'en';
 }
 
@@ -24,23 +33,59 @@ function getNested(obj, path) {
 
 export async function initI18n() {
   currentLang = detectLang();
+  console.info(`[i18n] initI18n detected lang=${currentLang}`);
   await loadBaseLang(currentLang);
   applyTranslations();
 
   // pro přepínač v site-headeru -> poslouchat custom eventy
   window.addEventListener('wt:setLang', async (ev) => {
     const lang = ev.detail?.lang;
+    console.info('[i18n] wt:setLang event', { from: currentLang, to: lang });
     if (!lang || !SUPPORTED.includes(lang)) return;
     await setLang(lang);
   });
 }
 
 export async function setLang(lang) {
-  if (lang === currentLang) return;
-  localStorage.setItem('wt_lang', lang);
+  if (lang === currentLang) {
+    console.debug(`[i18n] setLang called but already current=${currentLang}`);
+    return;
+  }
+  console.info(`[i18n] setLang ${currentLang} -> ${lang}`);
+  localStorage.setItem(STORAGE_KEY, lang);
+  console.info('[i18n] setLang updated localStorage');
   currentLang = lang;
   await loadBaseLang(lang);
   applyTranslations();
+  // Signal to interested parties that the language has been updated and
+  // base translations have been applied. This event is separate from the
+  // incoming `wt:setLang` which is used to *request* a language change
+  // (and which some pages dispatch to trigger initI18n's listener).
+  try {
+    window.dispatchEvent(new CustomEvent('wt:lang:changed', { detail: { lang: currentLang } }));
+  } catch (e) { /* ignore in non-DOM environments */ }
+}
+
+export async function availableLangsForTool(toolName) {
+  const out = [];
+  if (!toolName) return out;
+  for (const lang of SUPPORTED) {
+    const url = new URL(`../../locale/${toolName}.${lang}.json`, import.meta.url).href;
+    try {
+      const resp = await fetch(url, { method: 'HEAD' });
+      if (resp.ok) out.push(lang);
+    } catch (e) {
+      // fetch HEAD might be blocked by some servers; fall back to GET
+      try {
+        const r2 = await fetch(url);
+        if (r2.ok) out.push(lang);
+      } catch (e2) {
+        // ignore
+      }
+    }
+  }
+  // return only actually available languages (empty if none)
+  return out;
 }
 
 async function loadBaseLang(lang) {
@@ -68,6 +113,13 @@ async function loadLangFile(name) {
   const obj = await resp.json();
   mergeDict(dict, obj);
   applyTranslations();
+  // Notify listeners that a tool-specific translation file has been loaded
+  // and merged into the dictionary. Use a dedicated event to avoid
+  // triggering the language-change reload handler (which listens for
+  // `wt:lang:changed`) and could otherwise create a feedback loop.
+  try {
+    window.dispatchEvent(new CustomEvent('wt:tool:loaded', { detail: { lang: currentLang, tool: name } }));
+  } catch (e) { /* ignore in non-DOM environments */ }
 }
 
 function applyTranslations() {
@@ -122,7 +174,18 @@ export function getCurrentLang() {
   return currentLang;
 }
 
+
 export { loadLangFile as loadTranslationsFile };
+
+// Return translated string for a key (or undefined if not available).
+export function t(key) {
+  try {
+    if (!dict) return undefined;
+    return getNested(dict, key);
+  } catch (e) {
+    return undefined;
+  }
+}
 
 function mergeDict(target, src) {
   for (const k of Object.keys(src || {})) {
@@ -158,11 +221,21 @@ export async function autoLoadPageTranslations(name) {
   if (window[flag]) return;
   window[flag] = true;
 
-  window.addEventListener('wt:setLang', async () => {
+  // Reload tool-specific translations when language changes. Some pages
+  // dispatch `wt:setLang` to *request* a change, while others call
+  // `setLang` directly; therefore listen for both events so reloading
+  // happens regardless of how the change was initiated.
+  const reloadHandler = async () => {
     try {
       await loadLangFile(toolName);
     } catch (e) {
       console.warn('[i18n] failed to reload tool translations for', toolName, e && e.message);
     }
-  });
+  };
+  // Only reload when the language-change has been confirmed (wt:lang:changed).
+  // Listening to `wt:setLang` here is unnecessary because `setLang` will
+  // dispatch `wt:lang:changed` when base translations are applied.
+  window.addEventListener('wt:lang:changed', reloadHandler);
 }
+
+export { detectToolNameFromPath };

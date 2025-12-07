@@ -17,16 +17,16 @@
 <body>
   <div class="app">
     <script type="module" src="../js/ui/site-header.js"></script>
-    <site-header title="🔐 Affiní šifra"></site-header>
+    <site-header title="🔐 Affiní šifra" data-i18n="affine.header"></site-header>
 
     <div class="card">
-      <p class="muted">Affiní šifra: <code>E(x) = (a·x + b) mod 26</code> &nbsp;|&nbsp; <em>a</em> musí být nesoudělné s 26.</p>
+      <p class="muted" data-i18n="affine.description">Affiní šifra: <code>E(x) = (a·x + b) mod 26</code> &nbsp;|&nbsp; <em>a</em> musí být nesoudělné s 26.</p>
 
       <div class="controls">
-        <textarea id="text" class="form-control" placeholder="Zadej text..."></textarea>
+        <textarea id="text" class="form-control" placeholder="Zadej text..." data-i18n-placeholder="affine.text_placeholder"></textarea>
 
         <div class="row">
-          <label style="display:flex;gap:8px;align-items:center">a:
+          <label style="display:flex;gap:8px;align-items:center" data-i18n="affine.a_label">a:
             <!-- Povolené hodnoty a (gcd(a,26)=1) -->
             <select id="a" class="form-control small-input">
               <option>1</option><option>3</option><option selected>5</option><option>7</option>
@@ -34,14 +34,14 @@
               <option>19</option><option>21</option><option>23</option><option>25</option>
             </select>
           </label>
-          <label style="display:flex;gap:8px;align-items:center">b:
+          <label style="display:flex;gap:8px;align-items:center" data-i18n="affine.b_label">b:
             <input class="small-input form-control" type="number" id="b" value="8" min="0" max="25">
           </label>
         </div>
 
         <div class="row">
-          <button id="btnEncrypt">Zašifruj</button>
-          <button id="btnDecrypt">Dešifruj</button>
+          <button id="btnEncrypt" data-i18n="affine.encrypt_button">Zašifruj</button>
+          <button id="btnDecrypt" data-i18n="affine.decrypt_button">Dešifruj</button>
         </div>
 
         <div id="result" class="result"></div>
@@ -49,22 +49,9 @@
     </div>
 
     <!-- Vysvětlení (stejný komponent jako u Caesar/Vigenere) -->
-    <script type="module" src="../js/ui/site-doc.js"></script>
-    <site-doc src="affine_explain.md" title="📘 Vysvětlení" toggle></site-doc>
+    <script type="module" src="../js/site-doc.js"></script>
+    <site-doc src="affine_explain.md" data-i18n-title="site.explain" toggle></site-doc>
   </div>
-
-  <script type="module">
-    import { initTheme, applyTheme } from '../js/ui/theme.js';
-    initTheme();
-    // sync UI s header přepínači (stejné chování jako jinde)
-    const radios = document.querySelectorAll('#themeControls input[name="theme"]');
-    window.addEventListener('theme:changed', ev => {
-      radios.forEach(r => r.checked = (r.value === ev.detail.mode));
-    });
-    document.getElementById('themeControls')?.addEventListener('change', e => {
-      if (e.target?.value) applyTheme(e.target.value);
-    });
-  </script>
 
   <script type="module">
     const $ = sel => document.querySelector(sel);

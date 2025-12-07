@@ -189,6 +189,27 @@ class SiteDoc extends HTMLElement {
         console.warn('site-doc: optional dependency load failed', err);
       }
 
+      // Verify the markdown file exists before importing and trying to render it.
+      let mdExists = false;
+      try {
+        try {
+          const headResp = await fetch(this.src, { method: 'HEAD' });
+          mdExists = headResp && headResp.ok;
+        } catch (headErr) {
+          // Some servers don't support HEAD; fall back to GET.
+          const getResp = await fetch(this.src, { method: 'GET' });
+          mdExists = getResp && getResp.ok;
+        }
+      } catch (checkErr) {
+        mdExists = false;
+      }
+
+      if (!mdExists) {
+        console.warn('[site-doc] markdown not found, removing component:', this.src);
+        try { if (this.parentNode) this.parentNode.removeChild(this); else this.remove(); } catch (e) { try { this.style.display = 'none'; } catch (ee) {} }
+        return;
+      }
+
       // import the existing markdown_tools which handles KaTeX, highlighting and TOC
       const mod = await import('./core/markdown.js');
       console.log('[site-doc] markdown module loaded, calling loadMarkdown for', this.src);
@@ -206,7 +227,16 @@ class SiteDoc extends HTMLElement {
     } catch (err) {
       console.warn('site-doc: failed to load markdown', err);
       console.warn(err && err.stack ? err.stack : err);
-      if (this._bodyEl) this._bodyEl.innerHTML = `<div class="muted">Nelze načíst dokumentaci: ${err && err.message ? err.message : String(err)}</div>`;
+      // If the documentation can't be loaded (404 or other error), remove
+      // the entire component so the card does not appear on the page.
+      try {
+        if (this.parentNode) this.parentNode.removeChild(this);
+        else this.remove();
+      } catch (removeErr) {
+        // fallback: hide the element
+        try { this.style.display = 'none'; } catch (e) {}
+      }
+      return;
     }
   }
 }
