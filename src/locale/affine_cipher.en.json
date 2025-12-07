@@ -1,0 +1,12 @@
+{
+  "affine": {
+    "header": "🔐 Affine cipher",
+    "description": "Affine cipher: E(x) = (a·x + b) mod 26 — a must be coprime with 26.",
+    "text_placeholder": "Enter text...",
+    "a_label": "a:",
+    "b_label": "b:",
+    "encrypt_button": "Encrypt",
+    "decrypt_button": "Decrypt",
+    "result_title": "Result"
+  }
+}

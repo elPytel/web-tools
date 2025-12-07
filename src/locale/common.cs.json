@@ -4,4 +4,8 @@
     "paste": "Vložit",
     "clear": "Vymazat"
   }
+  ,
+  "site": {
+    "explain": "📘 Vysvětlení"
+  }
 }
