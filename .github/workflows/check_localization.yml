@@ -1,0 +1,27 @@
+name: Check localization consistency (manual, callable)
+
+on:
+  workflow_dispatch: {}
+  workflow_call: {}
+
+jobs:
+  i18n-check:
+    name: i18n consistency check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run i18n checker
+        run: node ./scripts/check-i18n.mjs
+        env:
+            CI: true

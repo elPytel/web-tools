@@ -1,0 +1,14 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  check_i18n:
+    name: i18n consistency check
+    uses: ./.github/workflows/check_localization.yml
+
+  tests:
+    name: Run tests
+    uses: ./.github/workflows/run_tests.yml
